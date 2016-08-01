@@ -18,6 +18,30 @@
             <Button Content="About"/>
         </Controls:WindowCommands>
     </Controls:MetroWindow.RightWindowCommands>
+    <Controls:MetroWindow.Resources>
+        <Style x:Key="TextBlockStyleTextTrimming" TargetType="{x:Type TextBlock}">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="local:TextBlockUtils.AutoTooltip" Value="True"/>
+        </Style>
+        <LinearGradientBrush x:Key="BgBrush1" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#888888"/>
+            <GradientStop Offset="1" Color="#FFFFF86E"/>
+        </LinearGradientBrush>
+        <Style x:Key="DataGridChangeColor" TargetType="{x:Type DataGridRow}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type DataGridRow}">
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                <Setter Property="Background" Value="{StaticResource BgBrush1}"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <local:ByteConverter x:Key="byteConverter"/>
+    </Controls:MetroWindow.Resources>
     <Grid>
         <!--
         <tb:TaskbarIcon MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager">
@@ -35,32 +59,6 @@
         <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <TabItem Header="Custom">
                 <Grid Background="Transparent">
-
-                    <ListBox x:Name="listBox" BorderThickness="1" IsSynchronizedWithCurrentItem="True" ItemsSource="{Binding}" MouseDoubleClick="listBox_MouseDoubleClick" Drop="listBox_Drop" AllowDrop="True" Margin="3,31,49,4">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid HorizontalAlignment="Stretch">
-                                    <Button HorizontalAlignment="Left">
-                                        <Button.Template>
-                                            <ControlTemplate>
-                                                <Border HorizontalAlignment="Center" VerticalAlignment="Center" >
-                                                    <Image Source="{Binding Path=Path}" Height="30" Width="50"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                    <TextBlock Margin="5,0,5,0" HorizontalAlignment="Center" TextAlignment="Left" Grid.Column="0" Text="{Binding Path=Name}"></TextBlock>
-                                    <Button Grid.Column="1" HorizontalAlignment="Right" Background="Transparent" Tag="{Binding Path=Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
-                                        <Rectangle Width="12" Height="12">
-                                            <Rectangle.Fill>
-                                                <VisualBrush Stretch="Uniform" Visual="{StaticResource appbar_close}"/>
-                                            </Rectangle.Fill>
-                                        </Rectangle>
-                                    </Button>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
 
                     <Button x:Name="ButtonOpenDir" Margin="0,31,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonOpenDir_Click" ToolTip="Open Directory">
                         <Rectangle Width="20" Height="15">
@@ -91,12 +89,12 @@
                         </Rectangle>
                     </Button>
                     <ComboBox x:Name="WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="WPStyleComboBox_SelectionChanged">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
                     </ComboBox>
                     <ComboBox x:Name="IntervalComboBox" SelectedIndex="0" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="IntervalComboBox_SelectionChanged">
                         <ComboBox.ItemTemplate>
@@ -112,6 +110,50 @@
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
                     </ComboBox>
                     <tk:ColorPicker x:Name="ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40"/>
+                    <DataGrid x:Name="dataGrid" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" MaxWidth="2560" MaxHeight="1600" MouseDoubleClick="dataGrid_MouseDoubleClick" Drop="dataGrid_Drop" ItemsSource="{Binding DataGridItem, IsAsync=True}" EnableColumnVirtualization="True" EnableRowVirtualization="True" Margin="3,31,48,4">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox x:Name="checkbox" IsChecked="{Binding Path=IsEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Img" CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Background="Transparent" Tag="{Binding Path=Name}" Height="30" Width="50" ToolTip="Open image with associated application" Click="ImageButton_Click">
+                                            <Button.Template>
+                                                <ControlTemplate>
+                                                    <Border HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Image Source="{Binding Path=Path}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Name" Width="*" IsReadOnly="True" CanUserSort="True" Binding="{Binding Name}" ElementStyle="{StaticResource TextBlockStyleTextTrimming}"/>
+                            <DataGridTextColumn Header="Path" Width="*" IsReadOnly="True" Binding="{Binding Path}" ElementStyle="{StaticResource TextBlockStyleTextTrimming}"/>
+                            <DataGridTextColumn Header="Resolution" IsReadOnly="True" Binding="{Binding Resolution}"/>
+                            <DataGridTextColumn Header="Size" IsReadOnly="True" Binding="{Binding Size, Converter={StaticResource byteConverter}}"/>
+                            <DataGridTextColumn Header="Type" IsReadOnly="True" Binding="{Binding Type}"/>
+                            <DataGridTemplateColumn CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Background="Transparent" Tag="{Binding Path=Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
+                                            <Rectangle Width="12" Height="12">
+                                                <Rectangle.Fill>
+                                                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_close}" />
+                                                </Rectangle.Fill>
+                                            </Rectangle>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Bing">

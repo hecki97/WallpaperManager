@@ -44,11 +44,12 @@ namespace WallpaperManager
             // On Windows Vista and later pvParam can also specify a .jpg file. If the specified image file is neither .bmp nor .jpg, or if the image is a .jpg file but the operating system is Windows Server 2003 or Windows XP/2000
             // that does not support .jpg as the desktop wallpaper, we convert the image file to .bmp and save it to the %appdata%\Microsoft\Windows\Themes folder.
             string extension = Path.GetExtension(path);
-            if ((!extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)) || (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) && !IsWin7OrHigher()))
+            if ((!extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)) || (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) && !Utilities.IsWin7OrHigher()))
             {
                 using (Image image = Image.FromFile(path))
                 {
-                    path = string.Format(@"{0}\Microsoft\Windows\Themes\{1}.bmp", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Path.GetFileNameWithoutExtension(path));
+                    //path = string.Format(@"{0}\Microsoft\Windows\Themes\{1}.bmp", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Path.GetFileNameWithoutExtension(path));
+                    path = string.Format(@"{0}\Microsoft\Windows\Themes\Wallpaper.bmp", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
                     image.Save(path, ImageFormat.Bmp);
                 }
             }
@@ -79,7 +80,7 @@ namespace WallpaperManager
                     key.SetValue(@"WallpaperStyle", "1");
                     key.SetValue(@"TileWallpaper", "0");
                     break;
-                case Style.Span: //Experimental
+                case Style.Span: // (Windows 7 and later) Experimental
                     key.SetValue(@"WallpaperStyle", "22");
                     key.SetValue(@"TileWallpaper", "0");
                     break;
@@ -106,12 +107,6 @@ namespace WallpaperManager
             int[] elements = { NativeMethods.COLOR_DESKTOP };
             int[] colors = { ColorTranslator.ToWin32(color) };
             if (!NativeMethods.SetSysColors(elements.Length, elements, colors)) throw new Win32Exception();
-        }
-
-        private static bool IsWin7OrHigher()
-        {
-            OperatingSystem OS = Environment.OSVersion;
-            return (OS.Platform == PlatformID.Win32NT) && (OS.Version.Major >= 6) && (OS.Version.Minor >= 1);
         }
     }
 }

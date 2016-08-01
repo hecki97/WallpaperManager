@@ -114,6 +114,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DataGridHelper.cs" />
+    <Compile Include="ValueConverter.cs" />
+    <Compile Include="TextBlockUtils.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="WallpaperHandler.cs" />
     <Compile Include="DebugLog.cs" />

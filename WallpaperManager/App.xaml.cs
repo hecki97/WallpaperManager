@@ -15,11 +15,6 @@ namespace WallpaperManager
     /// </summary>
     public partial class App : Application
     {
-        public event ApplicationEventHandler OnApplicationExit;
 
-        private void Application_Exit(object sender, ExitEventArgs e)
-        {
-            if (OnApplicationExit != null) OnApplicationExit();
-        }
     }
 }
