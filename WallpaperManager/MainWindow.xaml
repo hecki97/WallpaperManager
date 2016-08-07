@@ -1,4 +1,6 @@
-﻿<Controls:MetroWindow x:Class="WallpaperManager.MainWindow"
+﻿<Controls:MetroWindow
+        x:Class="WallpaperManager.MainWindow"
+        x:Name="mainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -41,6 +43,7 @@
             </Setter>
         </Style>
         <local:ByteConverter x:Key="byteConverter"/>
+        <local:TimeConverter x:Key="timeConverter"/>
     </Controls:MetroWindow.Resources>
     <Grid>
         <!--
@@ -58,7 +61,7 @@
         -->
         <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <TabItem Header="Custom">
-                <Grid Background="Transparent">
+                <Grid Background="Transparent" MouseLeftButtonUp="OnMouseLeftButtonUp" MouseMove="OnMouseMove">
 
                     <Button x:Name="ButtonOpenDir" Margin="0,31,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonOpenDir_Click" ToolTip="Open Directory">
                         <Rectangle Width="20" Height="15">
@@ -74,7 +77,7 @@
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
-                    <Button x:Name="ButtonClearList" Margin="0,0,3,4" HorizontalAlignment="Right" Width="40" Height="29" VerticalAlignment="Bottom" Click="ButtonClearList_Click" ToolTip="Clear List">
+                    <Button x:Name="ButtonClearList" Margin="0,0,3,2" HorizontalAlignment="Right" Width="40" Height="29" VerticalAlignment="Bottom" Click="ButtonClearList_Click" ToolTip="Clear List">
                         <Rectangle Width="15" Height="18">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_delete}"/>
@@ -97,9 +100,14 @@
                         <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
                     </ComboBox>
                     <ComboBox x:Name="IntervalComboBox" SelectedIndex="0" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="IntervalComboBox_SelectionChanged">
+                        <ComboBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                <Setter Property="Width" Value="94"/>
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Path=Item1}"/>
+                                <TextBlock Text="{Binding Converter={StaticResource timeConverter}}" Style="{StaticResource TextBlockStyleTextTrimming}"/>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -110,7 +118,12 @@
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
                     </ComboBox>
                     <tk:ColorPicker x:Name="ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40"/>
-                    <DataGrid x:Name="dataGrid" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" MaxWidth="2560" MaxHeight="1600" MouseDoubleClick="dataGrid_MouseDoubleClick" Drop="dataGrid_Drop" ItemsSource="{Binding DataGridItem, IsAsync=True}" EnableColumnVirtualization="True" EnableRowVirtualization="True" Margin="3,31,48,4">
+                    <DataGrid x:Name="dataGrid" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" MaxWidth="2560" MaxHeight="1600" MouseDoubleClick="dataGrid_MouseDoubleClick" Drop="dataGrid_Drop" ItemsSource="{Binding DataGridItem, IsAsync=True}" PreviewMouseLeftButtonDown="dataGrid_OnMouseLeftButtonDown" EnableColumnVirtualization="True" EnableRowVirtualization="True" SelectionMode="Single" Margin="3,31,48,14">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu >
+                                <MenuItem Header="Enable Drag and Drop (Experimental)" IsCheckable="True" Click="MenuItemDragNDrop_Click"  />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridTemplateColumn>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -154,14 +167,28 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <Label x:Name="label" Height="23" Margin="3,0,48,-5" VerticalAlignment="Bottom" FontSize="9.333"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Bing">
                 <Grid Background="#00E5E5E5">
-                    <Label x:Name="label" Content="Coming soon™" HorizontalAlignment="Center"  VerticalAlignment="Center" FontSize="48"/>
+                    <Label x:Name="labelBing" Content="Coming soon™" HorizontalAlignment="Center"  VerticalAlignment="Center" FontSize="48"/>
                 </Grid>
             </TabItem>
         </TabControl>
+        <!-- the popup that is displayed if user moves rows -->
+        <Popup x:Name="popup" IsHitTestVisible="False" Placement="RelativePoint" PlacementTarget="{Binding ElementName=mainWindow}" AllowsTransparency="True">
+            <Border BorderBrush="LightGray" BorderThickness="1" Background="White" Opacity="0.75">
+                <StackPanel Orientation="Horizontal" Margin="4,3,8,3">
+                    <Rectangle Width="16" Height="16">
+                        <Rectangle.Fill>
+                            <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_add}" />
+                        </Rectangle.Fill>
+                    </Rectangle>
+                    <TextBlock FontWeight="Bold" VerticalAlignment="Center" Text="{Binding ElementName=mainWindow, Path=DraggedItem.Name}" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
 </Controls:MetroWindow>
     
