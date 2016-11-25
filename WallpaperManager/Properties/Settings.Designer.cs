@@ -22,5 +22,134 @@ namespace WallpaperManager.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("#000")]
+        public string backgroundColorHex {
+            get {
+                return ((string)(this["backgroundColorHex"]));
+            }
+            set {
+                this["backgroundColorHex"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int wallpaperStyleIndex {
+            get {
+                return ((int)(this["wallpaperStyleIndex"]));
+            }
+            set {
+                this["wallpaperStyleIndex"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int intervalIndex {
+            get {
+                return ((int)(this["intervalIndex"]));
+            }
+            set {
+                this["intervalIndex"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int backgroundType {
+            get {
+                return ((int)(this["backgroundType"]));
+            }
+            set {
+                this["backgroundType"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double count {
+            get {
+                return ((double)(this["count"]));
+            }
+            set {
+                this["count"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Normal")]
+        public global::System.Windows.WindowState WindowState {
+            get {
+                return ((global::System.Windows.WindowState)(this["WindowState"]));
+            }
+            set {
+                this["WindowState"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0")]
+        public global::System.Windows.Vector WindowPos {
+            get {
+                return ((global::System.Windows.Vector)(this["WindowPos"]));
+            }
+            set {
+                this["WindowPos"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0")]
+        public global::System.Windows.Vector WindowSize {
+            get {
+                return ((global::System.Windows.Vector)(this["WindowSize"]));
+            }
+            set {
+                this["WindowSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<ArrayOfDouble xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance""
+                        xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+                        <double>15</double>
+                        <double>30</double>
+                        <double>60</double>
+                        <double>300</double>
+                        <double>900</double>
+                        <double>3600</double>
+                        <double>86400</double>
+                    </ArrayOfDouble>")]
+        public global::System.Collections.Generic.List<double> IntervalList {
+            get {
+                return ((global::System.Collections.Generic.List<double>)(this["IntervalList"]));
+            }
+            set {
+                this["IntervalList"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UpgradeRequired {
+            get {
+                return ((bool)(this["UpgradeRequired"]));
+            }
+            set {
+                this["UpgradeRequired"] = value;
+            }
+        }
     }
 }

@@ -7,12 +7,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:tk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:local="clr-namespace:WallpaperManager"
+        xmlns:Properties="clr-namespace:WallpaperManager.Properties"
         mc:Ignorable="d"
-        Title="Wallpaper Manager" Height="350" Width="520" MinWidth="520" MinHeight="350"
+        
+        Title="Wallpaper Manager" MinWidth="520" Width="520" MinHeight="350" Height="350"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:tb="http://www.hardcodet.net/taskbar"
         GlowBrush="{DynamicResource AccentColorBrush}"
-        ShowIconOnTitleBar="True" Loaded="MainWindow_Loaded"
+        ShowIconOnTitleBar="True" Loaded="MainWindow_Loaded" Closing="MainWindow_Closing" StateChanged="MainWindow_StateChanged"
         >
     <Controls:MetroWindow.RightWindowCommands>
         <Controls:WindowCommands>
@@ -25,48 +27,111 @@
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Setter Property="local:TextBlockUtils.AutoTooltip" Value="True"/>
         </Style>
-        <LinearGradientBrush x:Key="BgBrush1" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Offset="0" Color="#888888"/>
-            <GradientStop Offset="1" Color="#FFFFF86E"/>
-        </LinearGradientBrush>
-        <Style x:Key="DataGridChangeColor" TargetType="{x:Type DataGridRow}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type DataGridRow}">
-                        <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
-                                <Setter Property="Background" Value="{StaticResource BgBrush1}"/>
-                            </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
         <local:ByteConverter x:Key="byteConverter"/>
         <local:TimeConverter x:Key="timeConverter"/>
     </Controls:MetroWindow.Resources>
     <Grid>
-        <!--
-        <tb:TaskbarIcon MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager">
-            <!- Set a simple context menu  ->
+        <!-- TrayIcon -->
+        <tb:TaskbarIcon IconSource="app.ico" MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager (v1.1)" TrayMiddleMouseDown="TrayIcon_ButtonExitClick" TrayMouseDoubleClick="TrayIcon_ButtonRestoreClick">
             <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Next Wallpaper (WIP)" Name="cm_nextWallpaper_button" Click="cm_nextWallpaper_button_Click"/>
-                    <MenuItem Header="Interval: 1 Min" Name="cm_interval_button" Click="cm_interval_button_Click"/>
-                    <MenuItem Header="Restore Window" Name="cm_restore_button" Click="cm_restore_button_Click"/>
-                    <MenuItem Header="Exit" Name="cm_exit_button" Click="cm_exit_button_Click"/>
+                <ContextMenu Name="trayIcon_ContextMenu">
+                    <!--
+                    <MenuItem StaysOpenOnClick="True" Click="cm_nextWallpaper_button_Click">
+                        <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Next Wallpaper:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <Button Width="50" Height="50">
+                                    <Image Name="trayIcon_NextWPImage" Source="app_32x32.ico"/>
+                                </Button>
+                            </StackPanel>
+                        </MenuItem.Header>
+                    </MenuItem>
+                    -->
+                    <TextBlock Text="Wallpaper Manager (v1.1)"/>
+                    <!--
+                    <TextBlock Name="TrayIcon_TextBlockTimeLeft" HorizontalAlignment="Center" Text="00:00:00" FontSize="26.667"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Row="0" Grid.Column="0" Background="#00DDDDDD">
+                            <Rectangle Width="23" Height="20">
+                                <Rectangle.Fill>
+                                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_layout_collapse_left_variant}"/>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Button>
+                        <Button Grid.Row="0" Grid.Column="1" Background="#00DDDDDD">
+                            <Rectangle Width="20" Height="18">
+                                <Rectangle.Fill>
+                                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_shuffle}"/>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Button>
+                        <Button Grid.Row="0" Grid.Column="2" Background="#00DDDDDD">
+                            <Rectangle Width="23" Height="20">
+                                <Rectangle.Fill>
+                                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_layout_collapse_right_variant}"/>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Button>
+                    </Grid>
+                    -->
+                    <!--
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="p"/>
+                        <Button Grid.Column="1" Content=" r "/>
+                        <Button Grid.Column="2" Content="&gt;"/>
+                    </Grid>
+                    -->
+                    <!--
+                    <ComboBox x:Name="IntervalComboBox1" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" MaxWidth="125" MinWidth="125" SelectionChanged="IntervalComboBox_SelectionChanged">
+                        <ComboBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                <Setter Property="Width" Value="94"/>
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource timeConverter}}" Style="{StaticResource TextBlockStyleTextTrimming}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    -->
+                    <Separator/>
+                    <MenuItem Header="Restore (Double Click)" Name="TrayIcon_ButtonRestore" Click="TrayIcon_ButtonRestoreClick"/>
+                    <MenuItem Header="Exit (Middle Mouse)" Click="TrayIcon_ButtonExitClick"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
-        -->
+        
+        <!-- MainWindow -->
         <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <!-- TabCustom-->
             <TabItem Header="Custom">
                 <Grid Background="Transparent" MouseLeftButtonUp="OnMouseLeftButtonUp" MouseMove="OnMouseMove">
-
+                    <!-- SideBar -->
                     <Button x:Name="ButtonOpenDir" Margin="0,31,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonOpenDir_Click" ToolTip="Open Directory">
                         <Rectangle Width="20" Height="15">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_folder_open}" />
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <Button x:Name="ButtonAddFile" Margin="0,66,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonAddFile_Click" ToolTip="Add File(s)">
+                        <Rectangle Width="15" Height="18">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_page_add}" />
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
@@ -84,13 +149,14 @@
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
-                    <Button x:Name="ButtonAddFile" Margin="0,66,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonAddFile_Click" ToolTip="Add File(s)">
-                        <Rectangle Width="15" Height="18">
-                            <Rectangle.Fill>
-                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_page_add}" />
-                            </Rectangle.Fill>
-                        </Rectangle>
-                    </Button>
+                    <!-- TopBar -->
+                    <Button x:Name="ButtonChangeWP" Content="Change" HorizontalAlignment="Left" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Width="102" Height="26" FontSize="13.333" Click="ButtonChangeWP_Click"/>
+                    <ComboBox x:Name="BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" SelectionChanged="BackgroundComboBox_SelectionChanged">
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Solid Color</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
+                    </ComboBox>
+                    <tk:ColorPicker x:Name="ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40"/>
                     <ComboBox x:Name="WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="WPStyleComboBox_SelectionChanged">
                         <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
                         <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
@@ -99,7 +165,7 @@
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
                         <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
                     </ComboBox>
-                    <ComboBox x:Name="IntervalComboBox" SelectedIndex="0" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="IntervalComboBox_SelectionChanged">
+                    <ComboBox x:Name="IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="IntervalComboBox_SelectionChanged">
                         <ComboBox.ItemContainerStyle>
                             <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                                 <Setter Property="Width" Value="94"/>
@@ -111,13 +177,7 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Button x:Name="ButtonChangeWP" Content="Change" HorizontalAlignment="Left" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Width="102" Height="26" FontSize="13.333" Click="ButtonChangeWP_Click"/>
-                    <ComboBox x:Name="BackgroundComboBox" HorizontalAlignment="Left" SelectedIndex="0" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" SelectionChanged="BackgroundComboBox_SelectionChanged">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Solid Color</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
-                    </ComboBox>
-                    <tk:ColorPicker x:Name="ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40"/>
+                    <!-- DataGrid -->
                     <DataGrid x:Name="dataGrid" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" MaxWidth="2560" MaxHeight="1600" MouseDoubleClick="dataGrid_MouseDoubleClick" Drop="dataGrid_Drop" ItemsSource="{Binding DataGridItem, IsAsync=True}" PreviewMouseLeftButtonDown="dataGrid_OnMouseLeftButtonDown" EnableColumnVirtualization="True" EnableRowVirtualization="True" SelectionMode="Single" Margin="3,31,48,14">
                         <DataGrid.ContextMenu>
                             <ContextMenu >
@@ -170,6 +230,8 @@
                     <Label x:Name="label" Height="23" Margin="3,0,48,-5" VerticalAlignment="Bottom" FontSize="9.333"/>
                 </Grid>
             </TabItem>
+            
+            <!-- TabBing -->
             <TabItem Header="Bing">
                 <Grid Background="#00E5E5E5">
                     <Label x:Name="labelBing" Content="Coming soon™" HorizontalAlignment="Center"  VerticalAlignment="Center" FontSize="48"/>
@@ -178,14 +240,14 @@
         </TabControl>
         <!-- the popup that is displayed if user moves rows -->
         <Popup x:Name="popup" IsHitTestVisible="False" Placement="RelativePoint" PlacementTarget="{Binding ElementName=mainWindow}" AllowsTransparency="True">
-            <Border BorderBrush="LightGray" BorderThickness="1" Background="White" Opacity="0.75">
+            <Border BorderBrush="DarkGray" BorderThickness=".5" Background="White">
                 <StackPanel Orientation="Horizontal" Margin="4,3,8,3">
-                    <Rectangle Width="16" Height="16">
+                    <Rectangle Width="25" Height="15">
                         <Rectangle.Fill>
-                            <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_add}" />
+                            <ImageBrush Stretch="Fill" ImageSource="{Binding ElementName=mainWindow, Path=DraggedItem.Path}"/>
                         </Rectangle.Fill>
                     </Rectangle>
-                    <TextBlock FontWeight="Bold" VerticalAlignment="Center" Text="{Binding ElementName=mainWindow, Path=DraggedItem.Name}" Margin="8,0,0,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Binding ElementName=mainWindow, Path=DraggedItem.Name}" Margin="8,0,0,0"/>
                 </StackPanel>
             </Border>
         </Popup>

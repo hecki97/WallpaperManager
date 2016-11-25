@@ -10,6 +10,8 @@ using System.Windows.Threading;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Diagnostics;
+using System.ComponentModel;
+using System.Configuration;
 
 namespace WallpaperManager
 {
@@ -49,7 +51,7 @@ namespace WallpaperManager
         }
     }
     #endregion
-   
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -71,98 +73,97 @@ namespace WallpaperManager
         }
         #endregion
 
-        public new enum Background : int 
+        #region BackgroundType
+        public enum BackgroundType : int
         {
             SolidColor,
             Picture,
             Slideshow
         }
-    
-        private readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
+        #endregion
 
+        private static readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
+        private static readonly string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
+        private static readonly WallpaperHandler.Style fallbackWallpaperStyle = WallpaperHandler.Style.Stretch;
+        
         private int wallpaperIndex = 0;
-        private WallpaperHandler.Style wallpaperStyle = WallpaperHandler.Style.Fill;
-        private Background background = Background.SolidColor;
-
-        private DispatcherTimer dispatcherTimer = new DispatcherTimer(DispatcherPriority.SystemIdle);
-        private double counter = 0;
         private double interval = 10;
-
-        private ObservableCollection<DataGridItem> dataGridData = new ObservableCollection<DataGridItem>();
-        private ObservableCollection<double> intervalComboBoxData = new ObservableCollection<double>() { 15, 30, 60, 300, 900, 3600, 86400, 604750, 604800 };
-
-        private string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
+        //private WallpaperHandler.Style wallpaperStyle = WallpaperHandler.Style.Fill;
+        private BackgroundType background = BackgroundType.SolidColor;
+        private System.Drawing.Color backgroundColor;
 
         private DataGridItem lastItem = new DataGridItem();
-        private WallpaperHandler.Style lastUsedStyle;
+        private WallpaperHandler.Style lastStyle;
 
-        private bool datagridHasItems = true; 
+        private DispatcherTimer dispatcherTimer = new DispatcherTimer(DispatcherPriority.SystemIdle);
 
-        private int dirCount = 0; private int fileCount = 0; private Stopwatch stopwatch = new Stopwatch();
+        private ObservableCollection<DataGridItem> dataGridData = new ObservableCollection<DataGridItem>();
+        private ObservableCollection<double> intervalComboBoxData = new ObservableCollection<double>(); /*new ObservableCollection<double>(Properties.Settings.Default.IntervalList);*/
+
+        private bool datagridHasItems = true;
+
+        private int dirCount = 0; private int fileCount = 0;
+        
+        //TODO: Write more userfriendly GUI
 
         public MainWindow()
         {
             InitializeComponent();
 
+            try
+            {
+                ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
+            }
+            catch (ConfigurationErrorsException ex)
+            {
+                if (MessageBox.Show("WallpaperManager has detected that your user settings file has become corrupted. " +
+                                      "This may be due to a crash or improper exiting of the program. WallpaperManager must reset your user settings in order to continue." + 
+                                      "\n\nClick Yes to reset your user settings and continue.\n\n" +
+                                      "Click No if you wish to attempt manual repair or to rescue information before proceeding.",
+                                      "Error! Corrupt user settings",
+                                      MessageBoxButton.YesNo, MessageBoxImage.Error) == MessageBoxResult.Yes)
+                {
+                    File.Delete(ex.Filename);
+                    Properties.Settings.Default.Reload();
+                    // you could optionally restart the app instead
+                }
+                else
+                    Process.GetCurrentProcess().Kill();
+                    // avoid the inevitable crash
+            }
+
+            //intervalComboBoxData = new ObservableCollection<double>(Properties.Settings.Default.IntervalList);
+            intervalComboBoxData = new ObservableCollection<double>(new List<double> { 15, 30, 60, 300, 900, 3600, 86400 });
+
+            //Bind DataGrid ItemSource and ComboBox DataContext
             dataGrid.ItemsSource = dataGridData;
             IntervalComboBox.DataContext = intervalComboBoxData;
 
-            //Save and retrieve last selected Item
-            interval = intervalComboBoxData[0];
-            wallpaperStyle = 0;
-            background = 0;
-
-            // TODO: Write more userfriendly GUI
-            /*
-            if (Utilities.IsWin7OrHigher())
+            if (Properties.Settings.Default.UpgradeRequired)
             {
-                ((ComboBoxItem)WPStyleComboBox.Items[0]).IsEnabled = false;
-                ((ComboBoxItem)WPStyleComboBox.Items[0]).ToolTip = "This wallpaperstyle needs Win7 or higher";
-                ((ComboBoxItem)WPStyleComboBox.Items[1]).IsEnabled = false;
-                ((ComboBoxItem)WPStyleComboBox.Items[1]).ToolTip = "This wallpaperstyle needs Win7 or higher";
-                ((ComboBoxItem)WPStyleComboBox.Items[5]).IsEnabled = false;
-                ((ComboBoxItem)WPStyleComboBox.Items[5]).ToolTip = "This wallpaperstyle needs Win7 or higher";
-            }
-            */
-
-            // TODO: Save and retrieve values from config files
-            /*
-            if (!Directory.Exists(applicationDataPath)) Directory.CreateDirectory(applicationDataPath);
-            if (!Directory.Exists(applicationDataPath + @"\bing")) Directory.CreateDirectory(applicationDataPath + @"\bing");
-            XmlDocument xml = (File.Exists(applicationDataPath + @"\settings.xml")) ? XMLHelper.LoadXmlDocument(applicationDataPath + @"\settings.xml") : XMLHelper.CreateXmlDocument(applicationDataPath, "settings");
-
-            Dictionary<string, Dictionary<string, string>> settingsDictionary = new Dictionary<string, Dictionary<string, string>>();
-            Dictionary<string, string> customSettingsList = new Dictionary<string, string>();
-            if (xml.ChildNodes.Count > 0)
-            {
-                settingsDictionary = XMLHelper.GetAttributesByTagName(xml, "custom", new string[] { "wallpaperStyle", "solidColor", "wallpaperIndex" });
-                if (settingsDictionary.ContainsKey("custom")) customSettingsList = settingsDictionary["custom"];
+                Properties.Settings.Default.Upgrade();
+                Properties.Settings.Default.UpgradeRequired = false;
+                Properties.Settings.Default.Save();
             }
 
-            if (customSettingsList.ContainsKey("wallpaperStyle") && !string.IsNullOrWhiteSpace(customSettingsList["wallpaperStyle"]) && GetEnumStringEnumType<WallpaperHandler.Style>(customSettingsList["wallpaperStyle"]))
-            {
-                wallpaperStyle = (customSettingsList.ContainsKey("wallpaperStyle") && !string.IsNullOrWhiteSpace(customSettingsList["wallpaperStyle"])) ? (WallpaperHandler.Style)Enum.Parse(typeof(WallpaperHandler.Style), customSettingsList["wallpaperStyle"], true) : WallpaperHandler.Style.Fill;
-                WPStyleComboBox.SelectedValue = wallpaperStyle.ToString();
-            }
-            else
-                DebugLog.Error("Wallpaper style attribute is missing or couldn't be parsed! Default settings will be used.");
+            //Restore Window Pos, Window Size and Window State
+            WindowState = Properties.Settings.Default.WindowState;
+            Width = Properties.Settings.Default.WindowSize.X;
+            Height = Properties.Settings.Default.WindowSize.Y;
+            Left = Properties.Settings.Default.WindowPos.X;
+            Top = Properties.Settings.Default.WindowPos.Y;
+            
+            //Restore Interval, 
+            interval = intervalComboBoxData[Properties.Settings.Default.intervalIndex % intervalComboBoxData.Count];
+            //wallpaperStyle = (WallpaperHandler.Style) Properties.Settings.Default.iWallpaperStyle;
+            background = (BackgroundType) Properties.Settings.Default.backgroundType;
+            backgroundColor = System.Drawing.ColorTranslator.FromHtml(Properties.Settings.Default.backgroundColorHex);
 
-            if (customSettingsList.ContainsKey("wallpaperIndex") && !string.IsNullOrWhiteSpace(customSettingsList["wallpaperIndex"]) && listBoxData.Count > 0)
-            {
-                wallpaperIndex = (int.Parse(customSettingsList["wallpaperIndex"]) % listBoxData.Count);
-            }
-            else
-                DebugLog.Error("Wallpaper index attribute is missing, couldn't be parsed or the listBox has no elements! Default settings will be used.");
+            if (WindowState != WindowState.Minimized) { TrayIcon_ButtonRestore.IsEnabled = false; TrayIcon_ButtonRestore.Opacity = .5; }
 
-            if (customSettingsList.ContainsKey("solidColor") && !string.IsNullOrWhiteSpace(customSettingsList["solidColor"]))
-            {
-                string[] colorRgb = customSettingsList["solidColor"].Split('_');
-                ColorPicker.SelectedColor = System.Windows.Media.Color.FromArgb(255, byte.Parse(colorRgb[0]), byte.Parse(colorRgb[1]), byte.Parse(colorRgb[2]));
-            }
-            */
+            //if (!Directory.Exists(applicationDataPath + @"\bing")) Directory.CreateDirectory(applicationDataPath + @"\bing");
 
-            UpdateGUI();
-            UpdateDataGridGUI();
+            InitGUI();
         }
 
         #region Dispatcher Timer
@@ -171,25 +172,28 @@ namespace WallpaperManager
             dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             dispatcherTimer.Tick += new EventHandler(DispatcherTimer_Tick);
             dispatcherTimer.Start();
-            if (background == Background.Picture || background == Background.SolidColor) dispatcherTimer.Stop();
+            if (background == BackgroundType.Picture || background == BackgroundType.SolidColor) dispatcherTimer.Stop();
         }
 
         private void DispatcherTimer_Tick(object sender, EventArgs e)
         {
-            if (dataGridData.Count > 0 && background != Background.Picture && background != Background.SolidColor)
+            if (dataGridData.Count > 0 && background != BackgroundType.Picture && background != BackgroundType.SolidColor)
             {
-                counter++;
-                DebugLog.Log(counter.ToString());
-                if ((counter % interval) == 0)
+                //Test
+                //if (trayIcon_ContextMenu.IsOpen) TrayIcon_TextBlockTimeLeft.Text = TimeSpan.FromSeconds((interval - Properties.Settings.Default.count)).ToString(@"hh\:mm\:ss");
+
+                if ((Properties.Settings.Default.count % interval) == 0)
                 {
-                    counter = 0;
+                    Properties.Settings.Default.count = 0;
                     UpdateWallpaper();
                     DebugLog.Log("Wallpaper was updated!");
                 }
+                Properties.Settings.Default.count++;
             }
         }
         #endregion
 
+        #region MainWindow ButtonEvents
         private void switchTheme_Click(object sender, RoutedEventArgs e)
         {
             Tuple<AppTheme, Accent> theme = ThemeManager.DetectAppStyle(Application.Current);
@@ -198,61 +202,72 @@ namespace WallpaperManager
             switchTheme.Content = ((invertedAppTheme.Name == "BaseLight") ? "Dark" : "Light") + " Theme";
         }
 
-        /*
-        private void cm_exit_button_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
-
-        private void cm_nextWallpaper_button_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void cm_interval_button_Click(object sender, RoutedEventArgs e)
-        {
-            Dictionary<string, int> interval = new Dictionary<string, int>();
-            interval.Add("1 Min", 1);
-            interval.Add("5 Min", 5);
-            interval.Add("1 Hour", 60);
-            interval.Add("4 Hours", 240);
-            interval.Add("Never", -1);
-
-            var element = interval.ElementAt(intervalCount % interval.Count);
-            cm_interval_button.Header = "Interval: " + element.Key;
-            intervalCount++;
-        }
-
-        private void cm_restore_button_Click(object sender, RoutedEventArgs e)
+        private void MainWindow_StateChanged(object sender, EventArgs e)
         {
             if (WindowState == WindowState.Minimized)
             {
-                WindowState = WindowState.Normal;
-                ShowInTaskbar = true;
+                TrayIcon_ButtonRestore.IsEnabled = true;
+                TrayIcon_ButtonRestore.Opacity = 1;
+                Hide();
             }
         }
-        */
 
-        private void ResetCount()
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            dirCount = 0; fileCount = 0; stopwatch.Reset();
+            Properties.Settings.Default.WindowSize = new Vector(Width, Height);
+            Properties.Settings.Default.WindowPos = new Vector(Left, Top);
+            Properties.Settings.Default.WindowState = WindowState;
+            Properties.Settings.Default.Save();
+        }
+        #endregion     
+
+        #region TrayIcon Button EventHandler
+        private void TrayIcon_ButtonExitClick(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.WindowSize = new Vector(Width, Height);
+            Properties.Settings.Default.WindowPos = new Vector(Left, Top);
+            Properties.Settings.Default.WindowState = WindowState;
+            Properties.Settings.Default.Save();
+            Application.Current.Shutdown();
         }
 
+        private void TrayIcon_ButtonRestoreClick(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                ShowInTaskbar = true;
+                TrayIcon_ButtonRestore.IsEnabled = false;
+                TrayIcon_ButtonRestore.Opacity = .5;
+            }
+        }
+
+        private void TrayIcon_ButtonChangeWPClick(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                Debug.WriteLine("LMB");
+            else if (e.ChangedButton == MouseButton.Right)
+                Debug.WriteLine("RMB");
+        }
+        #endregion
+
+        #region CustomTab
+
+        #region GUI Events
         private void ButtonOpenDir_Click(object sender, RoutedEventArgs e)
         {
             ResetCount();
             System.Windows.Forms.FolderBrowserDialog objDialog = new System.Windows.Forms.FolderBrowserDialog();
             objDialog.ShowDialog();
-            stopwatch.Start();
             if (!string.IsNullOrWhiteSpace(objDialog.SelectedPath)) {
-                TreeScan(objDialog.SelectedPath);
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += backgroundWorker_treescan;
+                worker.RunWorkerCompleted += backgroundWorker_updateGUI;
+                worker.RunWorkerAsync(objDialog.SelectedPath);
             } else {
                 DebugLog.Warning("No directory selected!");
             }
-            stopwatch.Stop();
-            UpdateGUI();
-            UpdateDataGridGUI();
-            label.Content = "Scanned " + dirCount + " directories and " + fileCount + " files in " + stopwatch.Elapsed.Seconds + " seconds";
         }
 
         private void ButtonAddFile_Click(object sender, RoutedEventArgs e) {
@@ -262,7 +277,10 @@ namespace WallpaperManager
             openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             if (openFileDialog.ShowDialog() == true)
             {
-                AddFilesToList(openFileDialog.FileNames);
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += backgroundWorker_treescan;
+                worker.RunWorkerCompleted += backgroundWorker_updateGUI;
+                worker.RunWorkerAsync(openFileDialog.FileNames);
             }
             else
                 DebugLog.Log("No file(s) selected!");
@@ -270,24 +288,25 @@ namespace WallpaperManager
             UpdateDataGridGUI();
         }
 
-        private void AddFilesToList(string[] files)
+        private void backgroundWorker_treescan(object sender, DoWorkEventArgs e)
         {
-            if (files == null || (!files.Any())) { DebugLog.Warning("No file(s) were selected!"); return; }
+            ResetCount();
+            DateTime begin = DateTime.UtcNow;
+            Application.Current.Dispatcher.Invoke(delegate { label.Content = "Scanning. This may take a while..."; });
 
-           foreach (string file in files) {
-                if (string.IsNullOrWhiteSpace(file)) continue;
-                fileCount++;
-                if (supportedExtensions.Contains(Path.GetExtension(file).ToUpperInvariant())) {
-                    var img = System.Drawing.Image.FromFile(file);
-                    DataGridItem item = new DataGridItem(true, Path.GetFileNameWithoutExtension(file), file, string.Format("{0}x{1}", img.Width, img.Height), Utilities.GetFileSizeOnDisk(file), Path.GetExtension(file).Substring(1).ToUpper());
-                    if (!dataGridData.Contains(item))
-                        dataGridData.Add(item);
-                    else
-                        DebugLog.Warning("File '" + file + "' is already in list!");
-                } else {
-                    DebugLog.Warning("File '" + file + "' has an unsupported file extension!");
-                }
+            string[] pathArray = (e.Argument.GetType() == typeof(string)) ? new string[] { (string)e.Argument } : (string[])e.Argument;
+            foreach (string path in pathArray)
+            {
+                TreeScan(path);
             }
+            e.Result = Math.Round((DateTime.UtcNow - begin).TotalSeconds, 2);
+        }
+
+        private void backgroundWorker_updateGUI(object sender, RunWorkerCompletedEventArgs e)
+        {
+            UpdateGUI();
+            UpdateDataGridGUI();
+            label.Content = "Scanned dir(s): " + dirCount + " | Scanned file(s): " + fileCount + " | File(s) in datagrid: " + dataGridData.Count + " | Elapsed time: " + e.Result + " second(s)";
         }
 
         private void ButtonClearList_Click(object sender, RoutedEventArgs e)
@@ -296,74 +315,73 @@ namespace WallpaperManager
             dataGridData.Clear();
             UpdateGUI();
             UpdateDataGridGUI();
+            label.Content = string.Empty;
         }
 
-        private void TreeScan(string path)
+        private void BackgroundComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            AddFilesToList(Directory.GetFiles(path));
-            
-            //Loop trough each directory
-            foreach (string dir in Directory.GetDirectories(path))
+            //Properties.Settings.Default.iBackgroundType = BackgroundComboBox.SelectedIndex;
+
+            background = (BackgroundType)BackgroundComboBox.SelectedIndex;
+            if (dispatcherTimer.IsEnabled) { dispatcherTimer.Stop(); Properties.Settings.Default.count = 0; }
+            if (background == BackgroundType.Slideshow) dispatcherTimer.Start();
+            if (background == BackgroundType.SolidColor) lastItem = new DataGridItem();
+            UpdateGUI();
+        }
+
+        private void ButtonShuffleList_Click(object sender, RoutedEventArgs e)
+        {
+            dataGrid.UnselectAllCells();
+            Utilities.ClearSort(dataGrid);
+            dataGridData.Shuffle();
+            wallpaperIndex = 0;
+        }
+
+        private void ButtonChangeWP_Click(object sender, RoutedEventArgs e)
+        {
+            if (background == BackgroundType.SolidColor)
             {
-                try {
-                    dirCount++;
-                    TreeScan(dir); //Recursive call to get subdirs
-                }
-                catch (UnauthorizedAccessException e) {
-                    DebugLog.Error(e.Message);
-                    continue;
-                }
+                var wmcolor = ColorPicker.SelectedColor.Value;
+                WallpaperHandler.SetSolidColor(System.Drawing.Color.FromArgb(wmcolor.A, wmcolor.R, wmcolor.G, wmcolor.B));
             }
+            else
+                UpdateWallpaper((dataGrid.SelectedItem != null) ? (DataGridItem)dataGrid.SelectedItem : null);
+        }
+
+        private void WPStyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            Properties.Settings.Default.wallpaperStyleIndex = (int)Enum.Parse(typeof(WallpaperHandler.Style), WPStyleComboBox.SelectedValue.ToString(), true);
+            Properties.Settings.Default.Save();
+        }
+
+        private void IntervalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            interval = (double)IntervalComboBox.SelectedItem;
+            Properties.Settings.Default.intervalIndex = IntervalComboBox.SelectedIndex;
+            Properties.Settings.Default.count = 0;
+            Properties.Settings.Default.Save();
         }
 
         #region DataGrid Events
-
-        private void dataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void dataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (background == Background.SolidColor) background = Background.Picture;
-            DataGridItem item = (DataGridItem)dataGrid.SelectedItem;
-            if (item != null && !string.IsNullOrWhiteSpace(item.Path))
-            {
-                if (!lastItem.Path.Equals(item.Path) || (lastItem.Path.Equals(item.Path) && !lastUsedStyle.Equals(wallpaperStyle)) && item.IsEnabled)
-                {
-                    var wmcolor = ColorPicker.SelectedColor.Value;
-                    WallpaperHandler.Set(item.Path, wallpaperStyle, System.Drawing.Color.FromArgb(wmcolor.A, wmcolor.R, wmcolor.G, wmcolor.B));
-                    wallpaperIndex = (dataGrid.SelectedIndex + 1) % dataGrid.Items.Count;
+            // Ensure row was clicked and not empty space
+            if (ItemsControl.ContainerFromElement((DataGrid)sender, (DependencyObject)e.OriginalSource) as DataGridRow == null) return;
 
-                    //When double clicking on an item the timer will be reset to zero
-                    counter = 0;
-
-                    lastUsedStyle = wallpaperStyle;
-                    lastItem = item;
-                    UpdateGUI();
-                }
-                else
-                    DebugLog.Warning("Item '" + item.Path + "' already set as wallpaper!");
-            }
-            else
-                DebugLog.Error("Item couldn't be selected because it is null or the path is missing!");
+            if (background == BackgroundType.SolidColor) background = BackgroundType.Picture;
+            UpdateWallpaper((DataGridItem)dataGrid.SelectedItem);
         }
 
         private void dataGrid_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                List<string> filepathList = new List<string>((string[])e.Data.GetData(DataFormats.FileDrop, true));
-                if (filepathList.Count > 0)
-                {
-                    List<string> tmp_list = new List<string>();
-                    foreach (string filepath in filepathList)
-                    {
-                        if (Directory.Exists(filepath))
-                            TreeScan(filepath);
-                        else if (File.Exists(filepath))
-                            AddFilesToList(new[] { filepath });
-                    }
-                    UpdateGUI();
-                    UpdateDataGridGUI();
-                }
-                else
-                    DebugLog.Log("There were no files in filedrop!");
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += backgroundWorker_treescan;
+                worker.RunWorkerCompleted += backgroundWorker_updateGUI;
+                worker.RunWorkerAsync(e.Data.GetData(DataFormats.FileDrop, true));
             }
         }
 
@@ -372,7 +390,7 @@ namespace WallpaperManager
             int index = (DataGridHelper.TryFindParent<DataGridRow>((Button)sender)).GetIndex();
 
             if (dataGridData.ElementAt(index) != null)
-                System.Diagnostics.Process.Start(dataGridData[index].Path);
+                Process.Start(dataGridData[index].Path);
             else
                 DebugLog.Error("The Item which should be opened couldn't be found");
         }
@@ -389,58 +407,126 @@ namespace WallpaperManager
             else
                 DebugLog.Error("The Item which should be removed couldn't be found");
         }
-
-        private void UpdateDataGridGUI()
-        {
-            if (dataGrid.HasItems == datagridHasItems) return;
-            datagridHasItems = dataGrid.HasItems;
-
-            for (int i = 0; i < dataGrid.Columns.Count; i++)
-            {
-                dataGrid.Columns[i].Visibility = (dataGrid.HasItems) ? Visibility.Visible : Visibility.Hidden;
-            }
-        }
         #endregion
 
-        private void ButtonChangeWP_Click(object sender, RoutedEventArgs e)
+        #endregion
+
+        private void ResetCount()
         {
-            if (background == Background.SolidColor)
+            dirCount = 0; fileCount = 0;
+        }
+
+        private void TreeScan(string path)
+        {
+            if (Directory.Exists(path))
             {
-                var wmcolor = ColorPicker.SelectedColor.Value;
-                WallpaperHandler.SetSolidColor(System.Drawing.Color.FromArgb(wmcolor.A, wmcolor.R, wmcolor.G, wmcolor.B));
-            }
-            else
-                UpdateWallpaper();
-        }
-
-        private void WPStyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            wallpaperStyle = (WallpaperHandler.Style) Enum.Parse(typeof(WallpaperHandler.Style), WPStyleComboBox.SelectedValue.ToString(), true);
-        }
-
-        private void IntervalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            interval = (double)IntervalComboBox.SelectedItem;
-            counter = 0;
-        }
-
-        //TODO: Add support for 'IsEnabled' value and think about special edge cases (eg one item which is disabled -> Change Button deactivated in Picture Mode)
-        private void UpdateWallpaper()
-        {
-            //if (background == Background.Circle && dataGridData.Count <= 1) return;
-            if (dataGridData.Count > 0)
-            {
-                DataGridItem item = dataGridData.ElementAt(wallpaperIndex % dataGridData.Count);
-                if (item != null && !string.IsNullOrWhiteSpace(item.Path))
+                AddFilesToList(Directory.GetFiles(path));
+                //Loop trough each directory
+                foreach (string dir in Directory.GetDirectories(path))
                 {
-                    var wmcolor = ColorPicker.SelectedColor.Value;
-                    WallpaperHandler.Set(item.Path, wallpaperStyle, System.Drawing.Color.FromArgb(wmcolor.A, wmcolor.R, wmcolor.G, wmcolor.B));
-                    wallpaperIndex = (wallpaperIndex + 1) % dataGridData.Count;
+                    try
+                    {
+                        dirCount++;
+                        TreeScan(dir); //Recursive call to get subdirs
+                    }
+                    catch (UnauthorizedAccessException e)
+                    {
+                        DebugLog.Error(e.Message);
+                        continue;
+                    }
                 }
             }
+            else if (File.Exists(path)) AddFilesToList(path);
+        }
+
+        private void AddFilesToList(object obj)
+        {
+            if (obj.GetType() != typeof(string) && obj.GetType() != typeof(string[])) return;
+
+            string[] fileArray = (obj.GetType() == typeof(string)) ? new string[] { (string)obj } : (string[])obj;
+            foreach (string file in fileArray)
+            {
+                if (string.IsNullOrWhiteSpace(file)) continue;
+                fileCount++;
+                //Application.Current.Dispatcher.Invoke(delegate { label.Content = file; });
+                if (supportedExtensions.Contains(Path.GetExtension(file).ToUpperInvariant()))
+                {
+                    var img = System.Drawing.Image.FromFile(file);
+                    DataGridItem item = new DataGridItem(true, Path.GetFileNameWithoutExtension(file), file, string.Format("{0}x{1}", img.Width, img.Height), Utilities.GetFileSizeOnDisk(file), Path.GetExtension(file).Substring(1).ToUpper());
+                    Application.Current.Dispatcher.Invoke(delegate
+                    {
+                        if (!dataGridData.Contains(item))
+                            dataGridData.Add(item);
+                        else
+                            DebugLog.Warning("File '" + file + "' is already in list!");
+                    });
+                }
+                else
+                    DebugLog.Warning("File '" + file + "' has an unsupported file extension!");
+            }
+        }
+
+        private void UpdateWallpaper(DataGridItem item = null)
+        {
+            if (dataGridData.Count <= 0) return;
+            if (item == null) item = dataGridData.ElementAt(wallpaperIndex % dataGridData.Count);
+            if (item != null && !string.IsNullOrWhiteSpace(item.Path))
+            {
+                System.Drawing.Color lastBackgroundColor = backgroundColor;
+                System.Windows.Media.Color colorPickerSelectedColor = ColorPicker.SelectedColor.Value;
+                backgroundColor = System.Drawing.Color.FromArgb(colorPickerSelectedColor.A, colorPickerSelectedColor.R, colorPickerSelectedColor.G, colorPickerSelectedColor.B);
+                if (!lastItem.Path.Equals(item.Path) || (lastItem.Path.Equals(item.Path) && !lastStyle.Equals((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex)) || (lastItem.Path.Equals(item.Path) && !lastBackgroundColor.Equals(backgroundColor)) && item.IsEnabled)
+                {
+                    WallpaperHandler.Set(item.Path, (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex, backgroundColor);
+                    wallpaperIndex = ((dataGrid.SelectedItem != null) ? (dataGrid.SelectedIndex + 1) : (wallpaperIndex + 1)) % dataGrid.Items.Count;
+
+                    //When double clicking on an item the timer will be reset to zero
+                    Properties.Settings.Default.count = 0;
+
+                    lastStyle = (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex;
+                    lastItem = item;
+                    UpdateGUI();
+                }
+                else
+                    DebugLog.Warning("Item '" + item.Path + "' is already set as wallpaper!");
+            }
+            else
+                DebugLog.Error("Wallpaper couldn't be set, because item is null!");
+        }
+
+        private bool GetEnumStringEnumType<TEnum>(string _string) where TEnum : struct
+        {
+            TEnum _enum = default(TEnum);
+            return (Enum.TryParse(_string, true, out _enum) && Enum.IsDefined(typeof(TEnum), _enum));
         }
 
         int lastItemIndex = 0; bool useLastItemIndex = false;
+
+        #region GUI
+        private void InitGUI()
+        {
+            IntervalComboBox.SelectedIndex = Properties.Settings.Default.intervalIndex;
+            WPStyleComboBox.SelectedIndex = Properties.Settings.Default.wallpaperStyleIndex;
+
+            ColorPicker.SelectedColor = System.Windows.Media.Color.FromArgb(backgroundColor.A, backgroundColor.R, backgroundColor.G, backgroundColor.B);
+            BackgroundComboBox.SelectedIndex = (int)background;
+
+            if (!Utilities.IsWin7OrHigher())
+            {
+                ((ComboBoxItem)WPStyleComboBox.Items[0]).IsEnabled = false;
+                ((ComboBoxItem)WPStyleComboBox.Items[0]).ToolTip = "This wallpaperstyle needs Win7 or higher";
+                ((ComboBoxItem)WPStyleComboBox.Items[1]).IsEnabled = false;
+                ((ComboBoxItem)WPStyleComboBox.Items[1]).ToolTip = "This wallpaperstyle needs Win7 or higher";
+                ((ComboBoxItem)WPStyleComboBox.Items[5]).IsEnabled = false;
+                ((ComboBoxItem)WPStyleComboBox.Items[5]).ToolTip = "This wallpaperstyle needs Win7 or higher";
+
+                if ((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex == WallpaperHandler.Style.Fill || (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex == WallpaperHandler.Style.Fit || (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex == WallpaperHandler.Style.Span)
+                    WPStyleComboBox.SelectedIndex = (int)fallbackWallpaperStyle;
+            }
+
+            UpdateGUI();
+            UpdateDataGridGUI();
+        }
 
         private void UpdateGUI()
         {
@@ -448,10 +534,9 @@ namespace WallpaperManager
             //TODO: Special cases for ButtonChangeWP
             UpdateButton(ButtonChangeWP);
             UpdateButton(ButtonShuffleList);
-            IntervalComboBox.IsEnabled = !(background == Background.Picture || background == Background.SolidColor);
-            WPStyleComboBox.IsEnabled = !(background == Background.SolidColor);
 
-            BackgroundComboBox.SelectedIndex = (int)background;
+            IntervalComboBox.IsEnabled = !(background == BackgroundType.Picture || background == BackgroundType.SolidColor);
+            WPStyleComboBox.IsEnabled = !(background == BackgroundType.SolidColor);
 
             // Disable specific Items on specific datagriddata count
             ((ComboBoxItem)BackgroundComboBox.Items[1]).IsEnabled = (dataGridData.Count > 0) ? true : false;
@@ -478,7 +563,22 @@ namespace WallpaperManager
             else if (dataGridData.Count < 1 && useLastItemIndex) BackgroundComboBox.SelectedIndex = 0;
 
             //Special Case
-            if (background == Background.SolidColor && !ButtonChangeWP.IsEnabled) { ButtonChangeWP.IsEnabled = true; ButtonChangeWP.Opacity = 1; }
+            if (background == BackgroundType.SolidColor && !ButtonChangeWP.IsEnabled) { ButtonChangeWP.IsEnabled = true; ButtonChangeWP.Opacity = 1; }
+        }
+
+        private void UpdateDataGridGUI()
+        {
+            //Console.WriteLine(((DataGridCell)dataGrid.SelectedItem).Column.DisplayIndex);
+
+            //ButtonChangeWP.Content = (dataGrid.SelectedItem == null) ? "Change Wallpaper" : "Next Wallpaper"; 
+
+            if (dataGrid.HasItems == datagridHasItems) return;
+            datagridHasItems = dataGrid.HasItems;
+
+            for (int i = 0; i < dataGrid.Columns.Count; i++)
+            {
+                dataGrid.Columns[i].Visibility = (dataGrid.HasItems) ? Visibility.Visible : Visibility.Hidden;
+            }
         }
 
         private void UpdateButton(Button button)
@@ -486,34 +586,26 @@ namespace WallpaperManager
             button.IsEnabled = (dataGridData.Count > 0);
             button.Opacity = (button.IsEnabled) ? 1 : .5;   
         }
-
-        private bool GetEnumStringEnumType<TEnum>(string testString) where TEnum : struct
-        { 
-            TEnum testEnum = default(TEnum);
-            return (Enum.TryParse(testString, true, out testEnum) && Enum.IsDefined(typeof(TEnum), testEnum));
-        }
-
-        private void BackgroundComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            background = (Background)BackgroundComboBox.SelectedIndex;
-            if (dispatcherTimer.IsEnabled) { dispatcherTimer.Stop(); counter = 0; }
-            if (background == Background.Slideshow) dispatcherTimer.Start();
-            if (background == Background.SolidColor) lastItem = new DataGridItem();
-            UpdateGUI();
-        }
-
-        private void ButtonShuffleList_Click(object sender, RoutedEventArgs e)
-        {
-            dataGrid.UnselectAllCells();
-            Utilities.ClearSort(dataGrid);
-            dataGridData.Shuffle();
-        }
+        #endregion
 
         #region DataGrid Drag and Drop Rows
         private bool isDragging = false;
        
         private void dataGrid_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (sender != null)
+            {
+                DataGrid grid = sender as DataGrid;
+                if (grid != null && grid.SelectedItems != null && grid.SelectedItems.Count == 1)
+                {
+                    DataGridRow dgr = grid.ItemContainerGenerator.ContainerFromItem(grid.SelectedItem) as DataGridRow;
+                    if (!dgr.IsMouseOver)
+                    {
+                        (dgr as DataGridRow).IsSelected = false;
+                    }
+                }
+            }
+
             if (!isDragNDropEnabled) return; 
 
             //find the clicked row
@@ -539,17 +631,13 @@ namespace WallpaperManager
             {
                 //get target index
                 var targetIndex = dataGridData.IndexOf(targetItem);
-
                 //remove the source from the list
                 dataGridData.Remove(DraggedItem);
-
                 //move source at the target's location
                 dataGridData.Insert(targetIndex, DraggedItem);
-
                 //select the dropped item
                 dataGrid.SelectedItem = DraggedItem;
             }
-
             //reset
             ResetDragDrop();
         }
@@ -577,7 +665,6 @@ namespace WallpaperManager
             {
                 //switch to read-only mode
                 dataGrid.IsReadOnly = true;
-
                 //make sure the popup is visible
                 popup.IsOpen = true;
             }
@@ -598,6 +685,8 @@ namespace WallpaperManager
             isDragNDropEnabled = ((MenuItem)sender).IsChecked;
             dataGrid.UnselectAllCells();
         }
+        #endregion
+
         #endregion
     }
 }

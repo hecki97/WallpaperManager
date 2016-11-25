@@ -1,7 +1,45 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="uri:settings" CurrentProfile="(Default)">
-  <Profiles>
-    <Profile Name="(Default)" />
-  </Profiles>
-  <Settings />
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WallpaperManager.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="backgroundColorHex" Type="System.String" Scope="User">
+      <Value Profile="(Default)">#000</Value>
+    </Setting>
+    <Setting Name="wallpaperStyleIndex" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="intervalIndex" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">3</Value>
+    </Setting>
+    <Setting Name="backgroundType" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="count" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="WindowState" Type="System.Windows.WindowState" Scope="User">
+      <Value Profile="(Default)">Normal</Value>
+    </Setting>
+    <Setting Name="WindowPos" Type="System.Windows.Vector" Scope="User">
+      <Value Profile="(Default)">0,0</Value>
+    </Setting>
+    <Setting Name="WindowSize" Type="System.Windows.Vector" Scope="User">
+      <Value Profile="(Default)">0,0</Value>
+    </Setting>
+    <Setting Name="IntervalList" Type="System.Collections.Generic.List&lt;double&gt;" Scope="User">
+      <Value Profile="(Default)">&lt;ArrayOfDouble xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+                        &lt;double&gt;15&lt;/double&gt;
+                        &lt;double&gt;30&lt;/double&gt;
+                        &lt;double&gt;60&lt;/double&gt;
+                        &lt;double&gt;300&lt;/double&gt;
+                        &lt;double&gt;900&lt;/double&gt;
+                        &lt;double&gt;3600&lt;/double&gt;
+                        &lt;double&gt;86400&lt;/double&gt;
+                    &lt;/ArrayOfDouble&gt;</Value>
+    </Setting>
+    <Setting Name="UpgradeRequired" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>
