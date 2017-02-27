@@ -10,7 +10,7 @@
         xmlns:Properties="clr-namespace:WallpaperManager.Properties"
         mc:Ignorable="d"
         
-        Title="Wallpaper Manager" MinWidth="520" Width="520" MinHeight="350" Height="350"
+        Title="Wallpaper Manager (v1.1 inDev)" MinWidth="520" Width="520" MinHeight="350" Height="350"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:tb="http://www.hardcodet.net/taskbar"
         GlowBrush="{DynamicResource AccentColorBrush}"
@@ -32,7 +32,7 @@
     </Controls:MetroWindow.Resources>
     <Grid>
         <!-- TrayIcon -->
-        <tb:TaskbarIcon IconSource="app.ico" MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager (v1.1)" TrayMiddleMouseDown="TrayIcon_ButtonExitClick" TrayMouseDoubleClick="TrayIcon_ButtonRestoreClick">
+        <tb:TaskbarIcon IconSource="app.ico" MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager (v1.1 inDev)" TrayMiddleMouseDown="TrayIcon_ButtonExitClick" TrayMouseDoubleClick="TrayIcon_ButtonRestoreClick">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu Name="trayIcon_ContextMenu">
                     <!--
@@ -47,7 +47,7 @@
                         </MenuItem.Header>
                     </MenuItem>
                     -->
-                    <TextBlock Text="Wallpaper Manager (v1.1)"/>
+                    <TextBlock Text="Wallpaper Manager (v1.1 inDev)"/>
                     <!--
                     <TextBlock Name="TrayIcon_TextBlockTimeLeft" HorizontalAlignment="Center" Text="00:00:00" FontSize="26.667"/>
                     <Grid>
@@ -114,7 +114,7 @@
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
-        
+
         <!-- MainWindow -->
         <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <!-- TabCustom-->
@@ -150,7 +150,7 @@
                         </Rectangle>
                     </Button>
                     <!-- TopBar -->
-                    <Button x:Name="ButtonChangeWP" Content="Change" HorizontalAlignment="Left" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Width="102" Height="26" FontSize="13.333" Click="ButtonChangeWP_Click"/>
+                    <Button x:Name="ButtonChangeWP" Content="Change" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="ButtonChangeWP_Click" HorizontalAlignment="Left" Width="102"/>
                     <ComboBox x:Name="BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" SelectionChanged="BackgroundComboBox_SelectionChanged">
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Solid Color</ComboBoxItem>
                         <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
@@ -230,11 +230,97 @@
                     <Label x:Name="label" Height="23" Margin="3,0,48,-5" VerticalAlignment="Bottom" FontSize="9.333"/>
                 </Grid>
             </TabItem>
-            
+
             <!-- TabBing -->
             <TabItem Header="Bing">
                 <Grid Background="#00E5E5E5">
-                    <Label x:Name="labelBing" Content="Coming soon™" HorizontalAlignment="Center"  VerticalAlignment="Center" FontSize="48"/>
+                    <Button x:Name="Bing_ButtonFetchXML" Content="Fetch XML" Margin="0,0,35,2" Padding="0" FontSize="13.333" Click="button_Click" HorizontalAlignment="Right" Width="70" Height="26" VerticalAlignment="Bottom"/>
+                    <ComboBox x:Name="Bing_BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" IsEnabled="False">
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
+                    </ComboBox>
+                    <tk:ColorPicker x:Name="Bing_ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40" IsEnabled="False"/>
+                    <ComboBox x:Name="Bing_WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                    </ComboBox>
+                    <ComboBox x:Name="Bing_IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
+                        <ComboBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                <Setter Property="Width" Value="94"/>
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource timeConverter}}" Style="{StaticResource TextBlockStyleTextTrimming}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button x:Name="Bing_SetImageAsWallpaper" Content="Set WP" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="bing_setCurrentImageAsBackground" HorizontalAlignment="Left" Width="102"/>
+                    <Grid>
+                        <Image x:Name="image" Margin="10,32,10,35" Stretch="Uniform">
+                            <Image.ContextMenu>
+                                <ContextMenu >
+                                    <MenuItem Name="Bing_BingImageInfoSwitchMenuItem" Header="Show Bing Image Info" IsCheckable="True" />
+                                </ContextMenu>
+                            </Image.ContextMenu>
+                        </Image>
+                    </Grid>
+                    <Button x:Name="Bing_ImageLeftButton" HorizontalAlignment="Left" Margin="3,0,0,2" VerticalAlignment="Bottom" Width="27" Click="bing_imageLeftButtonClick" Height="26">
+                        <Rectangle Width="7.5" Height="10">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_chevron_left}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <ComboBox x:Name="Bing_SelectDownloadResolution" ToolTip="Select image resolution" Margin="36,0,0,2" VerticalAlignment="Bottom" SelectedIndex="3" HorizontalAlignment="Left" Width="100">
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">640x480</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">800x600</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">1280x720</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">1920x1080</ComboBoxItem>
+                    </ComboBox>
+                    <Button x:Name="Bing_DownloadBingImage" ToolTip="Download current image in selected resolution." Margin="141,0,0,2" Padding="0" FontSize="13.333" Click="bing_downloadCurrentImage" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
+                        <Rectangle Width="15" Height="15">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_disk_download}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <Button x:Name="Bing_OpenBingImageCopyrightLink" Margin="0,0,110,2" Padding="0" FontSize="13.333" Click="bing_openBingImageCopyrightLink" Height="26" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="30">
+                        <Rectangle Width="15" Height="15">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_magnify}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <Button x:Name="Bing_ImageRightButton" Margin="0,0,3,2" Click="bing_imageRightButtonClick" HorizontalAlignment="Right" Width="27" Height="26" VerticalAlignment="Bottom">
+                        <Rectangle Width="7.5" Height="10">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_chevron_right}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <Label x:Name="label1" Content="" Margin="211,0,145,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="Bing_OpenWallpaperFolder" Margin="176,0,0,2" Padding="0" FontSize="13.333" Click="bing_openWallpaperFolder" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
+                        <Rectangle Width="17" Height="13.5">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_folder_open}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <!--
+                    <ComboBox x:Name="Filter" HorizontalAlignment="Left" Margin="53,246,0,0" VerticalAlignment="Top" Width="100" SelectedIndex="0" ToolTip="Background" SelectionChanged="BackgroundComboBox_SelectionChanged">
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">All</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Weekday</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Day</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Month</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Year</ComboBoxItem>
+                    </ComboBox>
+                    -->
                 </Grid>
             </TabItem>
         </TabControl>

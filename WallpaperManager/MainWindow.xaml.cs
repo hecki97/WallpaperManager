@@ -12,6 +12,10 @@ using System.Windows.Input;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Configuration;
+using System.Net;
+using System.Xml;
+using System.Windows.Media.Imaging;
+using System.Globalization;
 
 namespace WallpaperManager
 {
@@ -161,9 +165,13 @@ namespace WallpaperManager
 
             if (WindowState != WindowState.Minimized) { TrayIcon_ButtonRestore.IsEnabled = false; TrayIcon_ButtonRestore.Opacity = .5; }
 
-            //if (!Directory.Exists(applicationDataPath + @"\bing")) Directory.CreateDirectory(applicationDataPath + @"\bing");
+            if (!Directory.Exists(applicationDataPath + @"\bing")) Directory.CreateDirectory(applicationDataPath + @"\bing");
+            if (!Directory.Exists(applicationDataPath + @"\bing\wallpaper")) Directory.CreateDirectory(applicationDataPath + @"\bing\wallpaper");
+            if (!Directory.Exists(applicationDataPath + @"\bing\thumbnails")) Directory.CreateDirectory(applicationDataPath + @"\bing\thumbnails");
 
             InitGUI();
+
+            Bing_UpdateGUI();
         }
 
         #region Dispatcher Timer
@@ -688,5 +696,218 @@ namespace WallpaperManager
         #endregion
 
         #endregion
+
+        #region BingItem
+        public class BingItem
+        {
+            public DateTime Date { get; set; }
+            public string Url { get; set; }
+            public string Name { get; set; }
+            public string Resolution { get; set; }
+            public string FilePath { get; set; }
+            public string Copyright { get; set; }
+            public string CopyrightLink { get; set; }
+
+            public BingItem()
+            {
+                Date = new DateTime();
+                Url = string.Empty;
+                Name = string.Empty;
+                Resolution = string.Empty;
+                FilePath = string.Empty;
+                Copyright = string.Empty;
+                CopyrightLink = string.Empty;
+            }
+
+            public BingItem(DateTime date, string url, string name, string resolution, string filepath, string copyright, string copyrightlink)
+            {
+                Date = date;
+                Url = url;
+                Name = name;
+                Resolution = resolution;
+                FilePath = filepath;
+                Copyright = copyright;
+                CopyrightLink = copyrightlink;
+            }
+        }
+        #endregion
+
+        /** Bing Image Handler **/
+
+        private static readonly string bingMainDir = applicationDataPath + @"\bing\";
+        private static readonly string bingXMLFile = bingMainDir + @"bing.xml";
+        private static readonly string bingWallpaperDir = bingMainDir + @"wallpaper\";
+        private static readonly string bingThumbnailDir = bingMainDir + @"thumbnails\";
+
+        int bIndex = 0;
+        List<BingItem> bingWallpapers = new List<BingItem>();
+        BingItem currentBingImage = null;
+        string bingXMLMD5Hash = string.Empty;
+        //bool isFetching = false;
+        List<BitmapImage> bingBMPImages = new List<BitmapImage>();
+
+        /* Bing Properties */
+        /* Saveable Properties */
+        private static readonly string bingXMLUrl = "http://www.bing.com/hpimagearchive.aspx?format=xml&idx=-1&n={0}&mkt={1}";
+        private static readonly string bingImageUrl = "http://www.bing.com{0}_{1}.jpg";
+        private static string thumbnailResolution = "1280x720";
+        private static string region = "de-DE";
+        private static int n = 8; /// > 8 not supported
+
+        private void Bing_FetchXML()
+        {
+            using (WebClient wc = new WebClient())
+            {
+                /* TODO: Async downloading */
+                //wc.DownloadProgressChanged += wc_DownloadProgressChanged;
+                wc.DownloadFile(new Uri(string.Format(bingXMLUrl, n, region)), bingXMLFile);
+            }
+        }
+
+        private void button_Click(object sender, RoutedEventArgs e)
+        {
+            //if (isFetching) return;
+            //isFetching = true; Debug.WriteLine(DateTime.Now.ToString() + " Click!");
+
+            if (File.Exists(bingXMLFile))
+            {
+                DateTime modification = File.GetLastWriteTime(bingXMLFile);
+                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Month)
+                {
+                    Debug.WriteLine("File already exists and is not up to date!");
+                    Bing_FetchXML();
+                }
+            }
+            else
+                Bing_FetchXML();
+
+            string currentXMLFileMD5Hash = Utilities.GetMD5HashFromFile(bingXMLFile);
+            if (bingXMLMD5Hash.Equals(currentXMLFileMD5Hash)) return;
+
+            XmlDocument doc = new XmlDocument();
+            try
+            {
+                doc.Load(bingXMLFile);
+            }
+            catch (XmlException)
+            {
+                Debug.WriteLine("Failed to open XML file.");
+                Bing_FetchXML();
+                return;
+            }
+            XmlNodeList nodes = doc.SelectNodes("/images/image");
+            foreach (XmlNode node in nodes)
+            {
+                BingItem item = new BingItem();
+                item.Date = DateTime.ParseExact(node.SelectSingleNode("enddate").InnerText, "yyyyMMdd", CultureInfo.InvariantCulture);
+                item.Url = node.SelectSingleNode("urlBase").InnerText;
+                item.Name = (item.Url.Split('/'))[4];
+                item.Resolution = thumbnailResolution;
+                item.FilePath = bingThumbnailDir + item.Name + "_" + thumbnailResolution + ".jpg";
+                item.Copyright = node.SelectSingleNode("copyright").InnerText;
+                item.CopyrightLink = node.SelectSingleNode("copyrightlink").InnerText;
+                if (!File.Exists(item.FilePath))
+                {
+                    using (WebClient wc = new WebClient())
+                    {
+                        // TODO: Async downloading
+                        //wc.DownloadFile(new Uri("http://www.bing.com" + item.Url + "_" + thumbnailResolution + ".jpg"), item.FilePath);
+                        wc.DownloadFile(new Uri(string.Format(bingImageUrl, item.Url, thumbnailResolution)), item.FilePath);
+                    }
+                    ///Problem: When using Bing_DownloadImage() program does not wait until download is finished resulting in crashing it   
+                    //Bing_DownloadImage(item, thumbnailResolution);
+                }
+                else
+                    Debug.WriteLine("File '" + item.FilePath + "' already exists");
+                bingBMPImages.Add(new BitmapImage(new Uri(item.FilePath)));
+                bingWallpapers.Add(item);
+            }
+            BingItem fItem = bingWallpapers.First();
+            //image.Source = new BitmapImage(new Uri(fItem.FilePath));
+            image.Source = bingBMPImages.First();
+            label1.Content = string.Format("{0}.{1}.{2}", fItem.Date.Day.ToString().PadLeft(2, '0'), fItem.Date.Month.ToString().PadLeft(2, '0'), fItem.Date.Year);
+            bingXMLMD5Hash = currentXMLFileMD5Hash;
+            Bing_UpdateGUI();
+            Bing_UpdateImage();
+            //isFetching = false;
+        }
+
+        private void Bing_UpdateGUI()
+        {
+            if (bingWallpapers.Count > 0)
+            {
+                Bing_ImageLeftButton.IsEnabled = true;
+                Bing_ImageLeftButton.Opacity = 1;
+                Bing_ImageRightButton.IsEnabled = true;
+                Bing_ImageRightButton.Opacity = 1;
+            }
+            else
+            {
+                Bing_ImageLeftButton.IsEnabled = false;
+                Bing_ImageLeftButton.Opacity = .5f;
+                Bing_ImageRightButton.IsEnabled = false;
+                Bing_ImageRightButton.Opacity = .5f;
+            }
+        }
+
+        private void Bing_UpdateImage()
+        {
+            currentBingImage = bingWallpapers.ElementAt(bIndex);
+            //image.Source = new BitmapImage(new Uri(item.FilePath));
+            image.Source = bingBMPImages.ElementAt(bIndex);
+            label1.Content = string.Format("{0}.{1}.{2}", currentBingImage.Date.Day.ToString().PadLeft(2, '0'), currentBingImage.Date.Month.ToString().PadLeft(2, '0'), currentBingImage.Date.Year);
+
+            Bing_OpenBingImageCopyrightLink.ToolTip = currentBingImage.Copyright;
+            if (Bing_BingImageInfoSwitchMenuItem.IsChecked) Console.WriteLine(currentBingImage.Copyright);
+        }
+
+        private void Bing_DownloadImage(BingItem item, string resolution)
+        {
+            using (WebClient wc = new WebClient())
+            {
+                /* TODO: Async downloading */
+                //wc.DownloadFile(new Uri("http://www.bing.com" + item.Url + "_" + res + ".jpg"), bingWallpaperDir + item.Name + "_" + res + ".jpg");
+                wc.DownloadFile(new Uri(string.Format(bingImageUrl, item.Url, resolution)), bingWallpaperDir + item.Name + "_" + resolution + ".jpg");
+            }
+        }
+
+        private void bing_imageLeftButtonClick(object sender, RoutedEventArgs e)
+        {
+            bIndex = (bIndex + 1 > bingWallpapers.Count - 1 ? 0 : bIndex + 1);
+            Bing_UpdateImage();
+        }
+
+        private void bing_imageRightButtonClick(object sender, RoutedEventArgs e)
+        {
+            bIndex = ((bIndex - 1 < 0) ? bingWallpapers.Count - 1 : bIndex - 1);
+            Bing_UpdateImage();
+        }
+
+        private void bing_downloadCurrentImage(object sender, RoutedEventArgs e)
+        {
+            var item = bingWallpapers.ElementAt(bIndex);
+            string res = Bing_SelectDownloadResolution.Text;
+            if (File.Exists(bingWallpaperDir + item.Name + "_" + res + ".jpg")) return;
+            Bing_DownloadImage(item, res);
+        }
+
+        private void bing_setCurrentImageAsBackground(object sender, RoutedEventArgs e)
+        {
+            if (bingWallpapers.Count <= 0) return;
+            var item = bingWallpapers.ElementAt(bIndex);
+            string res = Bing_SelectDownloadResolution.Text;
+            if (!File.Exists(bingWallpaperDir + item.Name + "_" + res + ".jpg")) Bing_DownloadImage(item, res);
+            WallpaperHandler.Set(bingWallpaperDir + item.Name + "_" + res + ".jpg", WallpaperHandler.Style.Fill, backgroundColor);
+        }
+
+        private void bing_openBingImageCopyrightLink(object sender, RoutedEventArgs e)
+        {
+            if (currentBingImage != null) Process.Start(currentBingImage.CopyrightLink);
+        }
+
+        private void bing_openWallpaperFolder(object sender, RoutedEventArgs e)
+        {
+            Process.Start(bingWallpaperDir);
+        }
     }
 }

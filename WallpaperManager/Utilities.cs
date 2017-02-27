@@ -57,6 +57,17 @@ namespace WallpaperManager
             return ((size + clusterSize - 1) / clusterSize) * clusterSize;
         }
 
+        public static string GetMD5HashFromFile(string filename)
+        {
+            using (var md5 = MD5.Create())
+            {
+                using (var stream = File.OpenRead(filename))
+                {
+                    return BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", string.Empty);
+                }
+            }
+        }
+
         public static void ClearSort(DataGrid dataGrid)
         {
             ICollectionView view = CollectionViewSource.GetDefaultView(dataGrid.ItemsSource);
