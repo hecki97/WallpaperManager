@@ -772,7 +772,7 @@ namespace WallpaperManager
             if (File.Exists(bingXMLFile))
             {
                 DateTime modification = File.GetLastWriteTime(bingXMLFile);
-                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Month)
+                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Year)
                 {
                     Debug.WriteLine("File already exists and is not up to date!");
                     Bing_FetchXML();
