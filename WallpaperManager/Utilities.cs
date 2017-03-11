@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Text;
+using System.Windows.Media.Imaging;
 
 namespace WallpaperManager
 {
@@ -78,6 +80,17 @@ namespace WallpaperManager
                 {
                     column.SortDirection = null;
                 }
+            }
+        }
+
+        public static void SaveImg(this BitmapSource image, string filePath)
+        {
+            BitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(image));
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                encoder.Save(fileStream);
             }
         }
     }

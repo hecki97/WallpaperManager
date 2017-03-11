@@ -16,6 +16,7 @@ using System.Net;
 using System.Xml;
 using System.Windows.Media.Imaging;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace WallpaperManager
 {
@@ -502,6 +503,39 @@ namespace WallpaperManager
                 DebugLog.Error("Wallpaper couldn't be set, because item is null!");
         }
 
+        /*
+        private void UpdateWallpaper1<T>(T item)
+        {
+            //if (dataGridData.Count <= 0 || bingWallpapers.Count <= 0) return;
+           if (TabCustom.IsSelected)
+
+            if (dataGridData.Count <= 0) return;
+            if (item == null) item = dataGridData.ElementAt(wallpaperIndex % dataGridData.Count);
+            if (item != null && !string.IsNullOrWhiteSpace(item.Path))
+            {
+                System.Drawing.Color lastBackgroundColor = backgroundColor;
+                System.Windows.Media.Color colorPickerSelectedColor = ColorPicker.SelectedColor.Value;
+                backgroundColor = System.Drawing.Color.FromArgb(colorPickerSelectedColor.A, colorPickerSelectedColor.R, colorPickerSelectedColor.G, colorPickerSelectedColor.B);
+                if (!lastItem.Path.Equals(item.Path) || (lastItem.Path.Equals(item.Path) && !lastStyle.Equals((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex)) || (lastItem.Path.Equals(item.Path) && !lastBackgroundColor.Equals(backgroundColor)) && item.IsEnabled)
+                {
+                    WallpaperHandler.Set(item.Path, (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex, backgroundColor);
+                    wallpaperIndex = ((dataGrid.SelectedItem != null) ? (dataGrid.SelectedIndex + 1) : (wallpaperIndex + 1)) % dataGrid.Items.Count;
+
+                    //When double clicking on an item the timer will be reset to zero
+                    Properties.Settings.Default.count = 0;
+
+                    lastStyle = (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex;
+                    lastItem = item;
+                    UpdateGUI();
+                }
+                else
+                    DebugLog.Warning("Item '" + item.Path + "' is already set as wallpaper!");
+            }
+            else
+                DebugLog.Error("Wallpaper couldn't be set, because item is null!");
+        }
+        */
+
         private bool GetEnumStringEnumType<TEnum>(string _string) where TEnum : struct
         {
             TEnum _enum = default(TEnum);
@@ -694,8 +728,8 @@ namespace WallpaperManager
             dataGrid.UnselectAllCells();
         }
         #endregion
-
         #endregion
+
 
         #region BingItem
         public class BingItem
@@ -743,44 +777,116 @@ namespace WallpaperManager
         List<BingItem> bingWallpapers = new List<BingItem>();
         BingItem currentBingImage = null;
         string bingXMLMD5Hash = string.Empty;
-        //bool isFetching = false;
-        List<BitmapImage> bingBMPImages = new List<BitmapImage>();
+        bool isFetching = false;
+        List<BitmapSource> bmpList = new List<BitmapSource>();
 
         /* Bing Properties */
-        /* Saveable Properties */
         private static readonly string bingXMLUrl = "http://www.bing.com/hpimagearchive.aspx?format=xml&idx=-1&n={0}&mkt={1}";
         private static readonly string bingImageUrl = "http://www.bing.com{0}_{1}.jpg";
+
+        /* Customizable & Saveable Properties */
         private static string thumbnailResolution = "1280x720";
         private static string region = "de-DE";
         private static int n = 8; /// > 8 not supported
 
-        private void Bing_FetchXML()
+        #region Asynchronous Operations
+        private async Task Bing_DownloadXMLAsync()
         {
-            using (WebClient wc = new WebClient())
+            try
             {
-                /* TODO: Async downloading */
-                //wc.DownloadProgressChanged += wc_DownloadProgressChanged;
-                wc.DownloadFile(new Uri(string.Format(bingXMLUrl, n, region)), bingXMLFile);
+                using (WebClient wc = new WebClient())
+                {
+                    wc.Encoding = System.Text.Encoding.GetEncoding("UTF-8");
+                    string xml = await wc.DownloadStringTaskAsync(string.Format(bingXMLUrl, n, region));
+
+                    XmlDocument xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(xml);
+                    using (StringWriter sw = new StringWriter())
+                    {
+                        XmlTextWriter textWriter = new XmlTextWriter(sw);
+                        textWriter.Formatting = Formatting.Indented;
+                        xmlDoc.WriteTo(textWriter);
+                        xmlDoc.Save(bingXMLFile);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("!Error: " + e.ToString());
             }
         }
 
-        private void button_Click(object sender, RoutedEventArgs e)
+        private async Task Bing_DownloadImageAsync(BingItem item, string resolution)
         {
-            //if (isFetching) return;
-            //isFetching = true; Debug.WriteLine(DateTime.Now.ToString() + " Click!");
+            string filePath = bingWallpaperDir + item.Name + "_" + resolution + ".jpg";
+            if (!File.Exists(filePath))
+            {
+                using (WebClient wc = new WebClient())
+                {
+                    await wc.DownloadFileTaskAsync(new Uri(string.Format(bingImageUrl, item.Url, resolution)),  filePath);
+                }
+            }
+            else
+                Debug.WriteLine("File '" + filePath + "' already exists");
+        }
 
+        private async Task Bing_DownloadMultipleImagesAsync(List<BingItem> imagelist, string resolution)
+        {
+            await Task.WhenAll(imagelist.Select(image => Bing_DownloadImageAsync(image, resolution)));
+        }
+
+        private async Task<BitmapSource> Bing_DownloadThumbnailAsync(BingItem item)
+        {
+            BitmapSource bmp = null;
+            if (!File.Exists(item.FilePath))
+            {
+
+                byte[] imgData = null;
+                using (WebClient wc = new WebClient())
+                {
+                    imgData = await wc.DownloadDataTaskAsync(string.Format(bingImageUrl, item.Url, thumbnailResolution));
+                }
+
+                using (MemoryStream ms = new MemoryStream(imgData))
+                {
+                    var decoder = BitmapDecoder.Create(ms, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                    bmp = decoder.Frames[0];
+                    Utilities.SaveImg(bmp, item.FilePath);
+                }
+            }
+            else
+            {
+                bmp = new BitmapImage(new Uri(item.FilePath));
+                Debug.WriteLine("File '" + item.FilePath + "' already exists");
+            }
+            return bmp;
+        }
+
+        private async Task<BitmapSource[]> Bing_DownloadMultipleThumbnailsAsync(List<BingItem> thmbnList)
+        {
+            return await Task.WhenAll(thmbnList.Select(item => Bing_DownloadThumbnailAsync(item)));
+        }
+        #endregion
+
+        #region GUI Events
+        private async void button_Click(object sender, RoutedEventArgs e)
+        {
+            if (isFetching) return;
+            isFetching = true;
             if (File.Exists(bingXMLFile))
             {
                 DateTime modification = File.GetLastWriteTime(bingXMLFile);
                 if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Year)
                 {
                     Debug.WriteLine("File already exists and is not up to date!");
-                    Bing_FetchXML();
+                    await Bing_DownloadXMLAsync();
                 }
             }
             else
-                Bing_FetchXML();
-
+            {
+                await Bing_DownloadXMLAsync();
+            }
+            isFetching = false;
             string currentXMLFileMD5Hash = Utilities.GetMD5HashFromFile(bingXMLFile);
             if (bingXMLMD5Hash.Equals(currentXMLFileMD5Hash)) return;
 
@@ -789,12 +895,19 @@ namespace WallpaperManager
             {
                 doc.Load(bingXMLFile);
             }
+            catch (Exception)
+            {
+                Debug.WriteLine("Failed to open XML file.");
+                return;
+            }
+            /*
             catch (XmlException)
             {
                 Debug.WriteLine("Failed to open XML file.");
-                Bing_FetchXML();
+                await Bing_DownloadXMLAsync();
                 return;
             }
+            */
             XmlNodeList nodes = doc.SelectNodes("/images/image");
             foreach (XmlNode node in nodes)
             {
@@ -803,111 +916,96 @@ namespace WallpaperManager
                 item.Url = node.SelectSingleNode("urlBase").InnerText;
                 item.Name = (item.Url.Split('/'))[4];
                 item.Resolution = thumbnailResolution;
-                item.FilePath = bingThumbnailDir + item.Name + "_" + thumbnailResolution + ".jpg";
+                item.FilePath = bingThumbnailDir + item.Name + "_" + thumbnailResolution + ".bmp";
                 item.Copyright = node.SelectSingleNode("copyright").InnerText;
                 item.CopyrightLink = node.SelectSingleNode("copyrightlink").InnerText;
-                if (!File.Exists(item.FilePath))
-                {
-                    using (WebClient wc = new WebClient())
-                    {
-                        // TODO: Async downloading
-                        //wc.DownloadFile(new Uri("http://www.bing.com" + item.Url + "_" + thumbnailResolution + ".jpg"), item.FilePath);
-                        wc.DownloadFile(new Uri(string.Format(bingImageUrl, item.Url, thumbnailResolution)), item.FilePath);
-                    }
-                    ///Problem: When using Bing_DownloadImage() program does not wait until download is finished resulting in crashing it   
-                    //Bing_DownloadImage(item, thumbnailResolution);
-                }
-                else
-                    Debug.WriteLine("File '" + item.FilePath + "' already exists");
-                bingBMPImages.Add(new BitmapImage(new Uri(item.FilePath)));
                 bingWallpapers.Add(item);
             }
-            BingItem fItem = bingWallpapers.First();
-            //image.Source = new BitmapImage(new Uri(fItem.FilePath));
-            image.Source = bingBMPImages.First();
-            label1.Content = string.Format("{0}.{1}.{2}", fItem.Date.Day.ToString().PadLeft(2, '0'), fItem.Date.Month.ToString().PadLeft(2, '0'), fItem.Date.Year);
+            bmpList = (await Bing_DownloadMultipleThumbnailsAsync(bingWallpapers)).ToList();
             bingXMLMD5Hash = currentXMLFileMD5Hash;
             Bing_UpdateGUI();
             Bing_UpdateImage();
-            //isFetching = false;
         }
 
         private void Bing_UpdateGUI()
         {
-            if (bingWallpapers.Count > 0)
-            {
-                Bing_ImageLeftButton.IsEnabled = true;
-                Bing_ImageLeftButton.Opacity = 1;
-                Bing_ImageRightButton.IsEnabled = true;
-                Bing_ImageRightButton.Opacity = 1;
-            }
-            else
-            {
-                Bing_ImageLeftButton.IsEnabled = false;
-                Bing_ImageLeftButton.Opacity = .5f;
-                Bing_ImageRightButton.IsEnabled = false;
-                Bing_ImageRightButton.Opacity = .5f;
-            }
+            Bing_ImageLeftButton.IsEnabled = (bingWallpapers.Count > 0 ? true : false);
+            Bing_ImageLeftButton.Opacity = (bingWallpapers.Count > 0 ? 1 : .5f);
+            Bing_ImageRightButton.IsEnabled = (bingWallpapers.Count > 0 ? true : false);
+            Bing_ImageRightButton.Opacity = (bingWallpapers.Count > 0 ? 1 : .5f);
         }
 
         private void Bing_UpdateImage()
         {
             currentBingImage = bingWallpapers.ElementAt(bIndex);
-            //image.Source = new BitmapImage(new Uri(item.FilePath));
-            image.Source = bingBMPImages.ElementAt(bIndex);
+            image.Source = bmpList.ElementAt(bIndex);
             label1.Content = string.Format("{0}.{1}.{2}", currentBingImage.Date.Day.ToString().PadLeft(2, '0'), currentBingImage.Date.Month.ToString().PadLeft(2, '0'), currentBingImage.Date.Year);
 
             Bing_OpenBingImageCopyrightLink.ToolTip = currentBingImage.Copyright;
-            if (Bing_BingImageInfoSwitchMenuItem.IsChecked) Console.WriteLine(currentBingImage.Copyright);
         }
 
-        private void Bing_DownloadImage(BingItem item, string resolution)
+        private void Bing_imageControlButtonClick(object sender, RoutedEventArgs e)
         {
-            using (WebClient wc = new WebClient())
-            {
-                /* TODO: Async downloading */
-                //wc.DownloadFile(new Uri("http://www.bing.com" + item.Url + "_" + res + ".jpg"), bingWallpaperDir + item.Name + "_" + res + ".jpg");
-                wc.DownloadFile(new Uri(string.Format(bingImageUrl, item.Url, resolution)), bingWallpaperDir + item.Name + "_" + resolution + ".jpg");
-            }
-        }
+            if (((Button)sender).Name == "Bing_ImageRightButton")
+                bIndex = ((bIndex - 1 < 0) ? bingWallpapers.Count - 1 : bIndex - 1);
+            else 
+                bIndex = (bIndex + 1 > bingWallpapers.Count - 1 ? 0 : bIndex + 1);
 
-        private void bing_imageLeftButtonClick(object sender, RoutedEventArgs e)
-        {
-            bIndex = (bIndex + 1 > bingWallpapers.Count - 1 ? 0 : bIndex + 1);
             Bing_UpdateImage();
         }
 
-        private void bing_imageRightButtonClick(object sender, RoutedEventArgs e)
-        {
-            bIndex = ((bIndex - 1 < 0) ? bingWallpapers.Count - 1 : bIndex - 1);
-            Bing_UpdateImage();
-        }
-
-        private void bing_downloadCurrentImage(object sender, RoutedEventArgs e)
-        {
-            var item = bingWallpapers.ElementAt(bIndex);
-            string res = Bing_SelectDownloadResolution.Text;
-            if (File.Exists(bingWallpaperDir + item.Name + "_" + res + ".jpg")) return;
-            Bing_DownloadImage(item, res);
-        }
-
-        private void bing_setCurrentImageAsBackground(object sender, RoutedEventArgs e)
+        private async void Bing_downloadCurrentImage(object sender, RoutedEventArgs e)
         {
             if (bingWallpapers.Count <= 0) return;
-            var item = bingWallpapers.ElementAt(bIndex);
-            string res = Bing_SelectDownloadResolution.Text;
-            if (!File.Exists(bingWallpaperDir + item.Name + "_" + res + ".jpg")) Bing_DownloadImage(item, res);
-            WallpaperHandler.Set(bingWallpaperDir + item.Name + "_" + res + ".jpg", WallpaperHandler.Style.Fill, backgroundColor);
+            await Bing_DownloadImageAsync(bingWallpapers.ElementAt(bIndex), Bing_SelectDownloadResolution.Text);
         }
 
-        private void bing_openBingImageCopyrightLink(object sender, RoutedEventArgs e)
+        private async void Bing_setCurrentImageAsBackground(object sender, RoutedEventArgs e)
+        {
+            if (bingWallpapers.Count <= 0) return;
+            BingItem currentItem = bingWallpapers.ElementAt(bIndex);
+            string res = Bing_SelectDownloadResolution.Text;
+            await Bing_DownloadImageAsync(currentItem, res);
+            WallpaperHandler.Set(bingWallpaperDir + currentItem.Name + "_" + res + ".jpg", WallpaperHandler.Style.Fill, backgroundColor);
+        }
+
+        private void Bing_openBingImageCopyrightLink(object sender, RoutedEventArgs e)
         {
             if (currentBingImage != null) Process.Start(currentBingImage.CopyrightLink);
         }
 
-        private void bing_openWallpaperFolder(object sender, RoutedEventArgs e)
+        private void Bing_openWallpaperFolder(object sender, RoutedEventArgs e)
         {
             Process.Start(bingWallpaperDir);
         }
+        #endregion
+        /*
+        private void Bing_UpdateWallpaper(BingItem item)
+        {
+            if (bingWallpapers.Count <= 0) return;
+            if (item != null)
+            {
+                System.Drawing.Color lastBackgroundColor = backgroundColor;
+                System.Windows.Media.Color colorPickerSelectedColor = ColorPicker.SelectedColor.Value;
+                backgroundColor = System.Drawing.Color.FromArgb(colorPickerSelectedColor.A, colorPickerSelectedColor.R, colorPickerSelectedColor.G, colorPickerSelectedColor.B);
+                if (!lastItem.Path.Equals(item.FilePath) || (lastItem.Path.Equals(item.FilePath) && !lastStyle.Equals((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex)) || (lastItem.Path.Equals(item.Path) && !lastBackgroundColor.Equals(backgroundColor)) && item.IsEnabled)
+                {
+                    WallpaperHandler.Set(item.Path, (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex, backgroundColor);
+                    wallpaperIndex = ((dataGrid.SelectedItem != null) ? (dataGrid.SelectedIndex + 1) : (wallpaperIndex + 1)) % dataGrid.Items.Count;
+
+                    //When double clicking on an item the timer will be reset to zero
+                    Properties.Settings.Default.count = 0;
+
+                    lastStyle = (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex;
+                    lastItem = item;
+                    UpdateGUI();
+                }
+                else
+                    DebugLog.Warning("Item '" + item.Path + "' is already set as wallpaper!");
+            }
+            else
+                DebugLog.Error("Wallpaper couldn't be set, because item is null!");
+        }
+        */
     }
 }
