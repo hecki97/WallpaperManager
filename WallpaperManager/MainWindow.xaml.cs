@@ -17,6 +17,7 @@ using System.Xml;
 using System.Windows.Media.Imaging;
 using System.Globalization;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace WallpaperManager
 {
@@ -90,7 +91,7 @@ namespace WallpaperManager
         private static readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
         private static readonly string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
         private static readonly WallpaperHandler.Style fallbackWallpaperStyle = WallpaperHandler.Style.Stretch;
-        
+
         private int wallpaperIndex = 0;
         private double interval = 10;
         //private WallpaperHandler.Style wallpaperStyle = WallpaperHandler.Style.Fill;
@@ -108,7 +109,7 @@ namespace WallpaperManager
         private bool datagridHasItems = true;
 
         private int dirCount = 0; private int fileCount = 0;
-        
+
         //TODO: Write more userfriendly GUI
 
         public MainWindow()
@@ -122,7 +123,7 @@ namespace WallpaperManager
             catch (ConfigurationErrorsException ex)
             {
                 if (MessageBox.Show("WallpaperManager has detected that your user settings file has become corrupted. " +
-                                      "This may be due to a crash or improper exiting of the program. WallpaperManager must reset your user settings in order to continue." + 
+                                      "This may be due to a crash or improper exiting of the program. WallpaperManager must reset your user settings in order to continue." +
                                       "\n\nClick Yes to reset your user settings and continue.\n\n" +
                                       "Click No if you wish to attempt manual repair or to rescue information before proceeding.",
                                       "Error! Corrupt user settings",
@@ -134,7 +135,7 @@ namespace WallpaperManager
                 }
                 else
                     Process.GetCurrentProcess().Kill();
-                    // avoid the inevitable crash
+                // avoid the inevitable crash
             }
 
             //intervalComboBoxData = new ObservableCollection<double>(Properties.Settings.Default.IntervalList);
@@ -157,11 +158,11 @@ namespace WallpaperManager
             Height = Properties.Settings.Default.WindowSize.Y;
             Left = Properties.Settings.Default.WindowPos.X;
             Top = Properties.Settings.Default.WindowPos.Y;
-            
+
             //Restore Interval, 
             interval = intervalComboBoxData[Properties.Settings.Default.intervalIndex % intervalComboBoxData.Count];
             //wallpaperStyle = (WallpaperHandler.Style) Properties.Settings.Default.iWallpaperStyle;
-            background = (BackgroundType) Properties.Settings.Default.backgroundType;
+            background = (BackgroundType)Properties.Settings.Default.backgroundType;
             backgroundColor = System.Drawing.ColorTranslator.FromHtml(Properties.Settings.Default.backgroundColorHex);
 
             if (WindowState != WindowState.Minimized) { TrayIcon_ButtonRestore.IsEnabled = false; TrayIcon_ButtonRestore.Opacity = .5; }
@@ -172,7 +173,14 @@ namespace WallpaperManager
 
             InitGUI();
 
+            // Bing
             Bing_UpdateGUI();
+
+            // Weather
+            if (!Directory.Exists(applicationDataPath + @"\weather")) Directory.CreateDirectory(applicationDataPath + @"\weather");
+            if (!Directory.Exists(applicationDataPath + @"\weather\packages")) Directory.CreateDirectory(applicationDataPath + @"\weather\packages");
+
+            dataGrid1.ItemsSource = weatherDataGridData;
         }
 
         #region Dispatcher Timer
@@ -626,13 +634,13 @@ namespace WallpaperManager
         private void UpdateButton(Button button)
         {
             button.IsEnabled = (dataGridData.Count > 0);
-            button.Opacity = (button.IsEnabled) ? 1 : .5;   
+            button.Opacity = (button.IsEnabled) ? 1 : .5;
         }
         #endregion
 
         #region DataGrid Drag and Drop Rows
         private bool isDragging = false;
-       
+
         private void dataGrid_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender != null)
@@ -648,7 +656,7 @@ namespace WallpaperManager
                 }
             }
 
-            if (!isDragNDropEnabled) return; 
+            if (!isDragNDropEnabled) return;
 
             //find the clicked row
             var row = DataGridHelper.TryFindFromPoint<DataGridRow>((UIElement)sender, e.GetPosition(dataGrid));
@@ -823,7 +831,7 @@ namespace WallpaperManager
             {
                 using (WebClient wc = new WebClient())
                 {
-                    await wc.DownloadFileTaskAsync(new Uri(string.Format(bingImageUrl, item.Url, resolution)),  filePath);
+                    await wc.DownloadFileTaskAsync(new Uri(string.Format(bingImageUrl, item.Url, resolution)), filePath);
                 }
             }
             else
@@ -948,7 +956,7 @@ namespace WallpaperManager
         {
             if (((Button)sender).Name == "Bing_ImageRightButton")
                 bIndex = ((bIndex - 1 < 0) ? bingWallpapers.Count - 1 : bIndex - 1);
-            else 
+            else
                 bIndex = (bIndex + 1 > bingWallpapers.Count - 1 ? 0 : bIndex + 1);
 
             Bing_UpdateImage();
@@ -1007,5 +1015,269 @@ namespace WallpaperManager
                 DebugLog.Error("Wallpaper couldn't be set, because item is null!");
         }
         */
+
+        /// <summary>
+        /// Weather
+        /// </summary>
+
+        private class WeatherDetails
+        {
+            public string Weather { get; set; }
+            public string WeatherIcon { get; set; }
+            public string WeatherDay { get; set; }
+            public string Temperature { get; set; }
+            public string MaxTemperature { get; set; }
+            public string MinTemperature { get; set; }
+            public string WindDirection { get; set; }
+            public string WindSpeed { get; set; }
+            public string Humidity { get; set; }
+            public string WeatherConditionCode { get; set; }
+        }
+
+        private class WeatherDataGridItem
+        {
+            public bool IsEnabled { get; set; }
+            public string Name { get; set; }
+            //public string Author { get; set; }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private static readonly string appid = "0c42e9b22f0b4a9c8d69ed09e4f1123c";
+        private static readonly string openWeatherUrl = "http://api.openweathermap.org/data/2.5/forecast/daily?q={0}&type=like&mode=xml&units=metric&cnt=3&lang={1}&appid={2}";
+        private static readonly string openWeatherFilePath = applicationDataPath + @"\weather\openweather.xml";
+        private static readonly string packagePath = applicationDataPath + @"\weather\packages\";
+        private string location = "Saarbrücken";
+        private string language = "de";
+
+        private string currentPackageName = "Test";
+        //private Dictionary<string, List<string>> weatherImagesDictionary = new Dictionary<string, List<string>>();
+        private ObservableCollection<WeatherDataGridItem> weatherDataGridData = new ObservableCollection<WeatherDataGridItem>();
+
+        private List<WeatherDetails> weatherDetailsList = new List<WeatherDetails>();
+
+        private Dictionary<string, Dictionary<string, List<string>>> packagesDictionary = new Dictionary<string, Dictionary<string, List<string>>>();
+        private Dictionary<string, List<string>> imagesDictionary = new Dictionary<string, List<string>>();
+
+
+        private string currentTemperature = "--.--°";
+
+        public string CurrentTemperature
+        {
+            get { return currentTemperature; }
+            set
+            {
+                currentTemperature = value;
+                //OnPropertyChanged("CurrentTemperature");
+            }
+        }
+
+
+        private async Task DownloadOpenWeatherXmlAsync() {
+            using (WebClient wc = new WebClient())
+            {
+                wc.Encoding = System.Text.Encoding.GetEncoding("UTF-8");
+                try
+                {
+                    string response = await wc.DownloadStringTaskAsync(string.Format(openWeatherUrl, location, language, appid));
+                    if (!(response.Contains("message") && response.Contains("cod")))
+                    {
+                        XmlDocument xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(response);
+                        using (StringWriter sw = new StringWriter())
+                        {
+                            XmlTextWriter textWriter = new XmlTextWriter(sw);
+                            textWriter.Formatting = Formatting.Indented;
+                            xmlDoc.WriteTo(textWriter);
+                            xmlDoc.Save(openWeatherFilePath);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("!Error: " + e.ToString());
+                }
+            }
+        }
+
+        private async void WeatherButtonFetchXML_Click(object sender, RoutedEventArgs e)
+        {
+            if (File.Exists(openWeatherFilePath))
+            {
+                DateTime modification = File.GetLastWriteTime(openWeatherFilePath);
+                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Year)
+                {
+                    Debug.WriteLine("File already exists and is not up to date!");
+                    await DownloadOpenWeatherXmlAsync();
+                }
+            }
+            else
+            {
+                await DownloadOpenWeatherXmlAsync();
+            }
+
+            XElement xEl = XElement.Load(openWeatherFilePath);
+            weatherDetailsList = GetWeatherInfo(xEl);
+
+            CurrentTemperature = weatherDetailsList.First().Temperature;
+
+            //textBlock.Text = weatherDetailsList.First().Temperature;
+            textBlock1.Text = weatherDetailsList.First().Weather;
+            image1.Source = new BitmapImage(new Uri("pack://application:,,,/WeatherIcons/" + weatherDetailsList.First().WeatherIcon + ".png"));
+
+            Console.WriteLine(weatherDetailsList.First().WeatherConditionCode);
+
+            string weatherConditionCode = weatherDetailsList.First().WeatherConditionCode;
+            string curPackagePath = packagePath + currentPackageName + @"\";
+           
+            if (char.GetNumericValue(weatherConditionCode.ElementAt(2)) > 0 && File.Exists(curPackagePath + weatherConditionCode + ".jpg"))
+                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode + ".jpg")) };
+            else if (char.GetNumericValue(weatherConditionCode.ElementAt(1)) > 0 && File.Exists(curPackagePath + weatherConditionCode.Remove(2, 1).Insert(2, "0") + ".jpg"))
+                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode.Remove(2, 1).Insert(2, "0") + ".jpg")) };
+            else if (File.Exists(curPackagePath + weatherConditionCode.Remove(1, 2).Insert(1, "00") + ".jpg"))
+                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode.Remove(1, 2).Insert(1, "00") + ".jpg")) };
+            else
+                Console.WriteLine("No Image found!");
+        }
+
+        private List<WeatherDetails> GetWeatherInfo(XElement xEl)
+        {
+            IEnumerable<WeatherDetails> weatherDetails = xEl.Descendants("time").Select((el) =>
+                new WeatherDetails
+                {
+                    Humidity = el.Element("humidity").Attribute("value").Value + "%",
+                    MaxTemperature = el.Element("temperature").Attribute("max").Value + "°",
+                    MinTemperature = el.Element("temperature").Attribute("min").Value + "°",
+                    Temperature = el.Element("temperature").Attribute("day").Value + "°",
+                    Weather = el.Element("symbol").Attribute("name").Value,
+                    WeatherDay = DayOfTheWeek(el),
+                    WeatherIcon = el.Element("symbol").Attribute("var").Value, //WeatherIconPath(el),
+                    WindDirection = el.Element("windDirection").Attribute("name").Value,
+                    WindSpeed = el.Element("windSpeed").Attribute("mps").Value + "mps",
+                    WeatherConditionCode = WeatherConditionCode(el)
+        });
+
+            return weatherDetails.ToList();
+        }
+
+        private static string DayOfTheWeek(XElement el)
+        {
+            DayOfWeek dW = Convert.ToDateTime(el.Attribute("day").Value).DayOfWeek;
+            return dW.ToString();
+        }
+
+        private static string WeatherConditionCode(XElement el)
+        {
+            string symbolVar = el.Element("symbol").Attribute("var").Value;
+            string symbolNumber = el.Element("symbol").Attribute("number").Value;
+            string dayOrNight = symbolVar.ElementAt(2).ToString(); // d or n
+            return string.Format("{0}{1}", symbolNumber, dayOrNight);
+        }
+
+        private void Weather_Image_Click(object sender, RoutedEventArgs e)
+        {
+            //Process.Start(packagePath + currentPackageName + @"\" + "800n.jpg");
+        }
+
+        private void Weather_dataGrid_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] filepaths = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string filepath in filepaths)
+                {
+                    string packageName = Path.GetFileNameWithoutExtension(filepath);
+                    weatherDataGridData.Add(new WeatherDataGridItem
+                    {
+                        IsEnabled = false,
+                        Name = packageName
+                    });
+                    if (packagesDictionary.ContainsKey(packageName)) throw new Exception("Package already in dictionary!"); // TODO: do something useful instead of just throwing random errors!
+                    Dictionary<string, List<string>> package = new Dictionary<string, List<string>>();
+                    WeatherTreeScan(ref package, filepath);
+                    packagesDictionary.Add(packageName, package);
+                }
+            }
+        }
+
+        private void WeatherTreeScan(ref Dictionary<string, List<string>> package, string path)
+        {
+            if (Directory.Exists(path))
+            {
+                AddFilesToDictionary(ref package, Directory.GetFiles(path));
+                //Loop trough each directory
+                foreach (string dir in Directory.GetDirectories(path))
+                {
+                    try
+                    {
+                        WeatherTreeScan(ref package, dir); //Recursive call to get subdirs
+                    }
+                    catch (UnauthorizedAccessException e)
+                    {
+                        DebugLog.Error(e.Message);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        private void AddFilesToDictionary(ref Dictionary<string, List<string>> packageDictionary, string[] filepaths)
+        {
+            foreach (string filepath in filepaths)
+            {
+                string weathercode = Path.GetFileNameWithoutExtension(filepath).Truncate(4);
+                if (packageDictionary.ContainsKey(weathercode))
+                    packageDictionary[weathercode].Add(filepath);
+                else
+                    packageDictionary.Add(weathercode, new List<string> { filepath });
+            }
+        }
+
+        private void Weather_Random_Click(object sender, RoutedEventArgs e)
+        {
+            if (weatherDetailsList == null) return; //TODO: Initialize when not initialized
+            string weatherCode = weatherDetailsList.First().WeatherConditionCode;
+
+            if (((Image)button2.Content).Source == null) button2.Content = new Image { Source = new BitmapImage(new Uri(imagesDictionary[weatherCode].First())) };
+            else if (imagesDictionary[weatherCode].Count > 1)
+            {
+                button2.Content = PickRandomImage(weatherCode);
+            }
+            else
+                button2.Content = new Image();
+        }
+
+        private Image PickRandomImage(string weatherCode)
+        {
+            Uri oldUri = ((BitmapImage)((Image)button2.Content).Source).UriSource;
+            Uri randUri = new Uri(imagesDictionary[weatherCode].PickRandom());
+            Console.WriteLine(randUri.ToString());
+            if (oldUri.Equals(randUri)) PickRandomImage(weatherCode);
+            return new Image { Source = new BitmapImage(randUri) };
+        }
+
+        private void Weather_OnChecked(object sender, RoutedEventArgs e)
+        {
+            if (!imagesDictionary.ContainsKey("packages")) imagesDictionary.Add("packages", new List<string>());
+            CheckBox checkBox = (CheckBox)e.OriginalSource;
+            WeatherDataGridItem parent = (WeatherDataGridItem) (DataGridHelper.TryFindParent<DataGridRow>(checkBox)).Item;
+            if ((checkBox.IsChecked == true) && !imagesDictionary["packages"].Contains(parent.Name))
+            {
+                imagesDictionary["packages"].Add(parent.Name);
+                packagesDictionary[parent.Name].ToList().ForEach(x => imagesDictionary[x.Key] = x.Value);
+            }
+            else if ((checkBox.IsChecked == false) && imagesDictionary["packages"].Contains(parent.Name))
+            {
+                imagesDictionary["packages"].Remove(parent.Name);
+                //packagesDictionary[parent.Name].ToList().ForEach(x => x.Value.ToList().ForEach(y => imagesDictionary[x.Key].Remove(y)));
+            }
+            var d = imagesDictionary;
+            var c = packagesDictionary;
+        }
     }
 }

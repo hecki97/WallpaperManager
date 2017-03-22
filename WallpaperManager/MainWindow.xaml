@@ -323,6 +323,77 @@
                     -->
                 </Grid>
             </TabItem>
+
+            <!-- TabWeather -->
+            <TabItem Header="Weather" Name="TabWeather">
+                <Grid Background="#00E5E5E5">
+                    <Button x:Name="Weather_ButtonFetchXML" Content="Fetch XML" Margin="0,0,0,2" Padding="0" FontSize="13.333" Click="WeatherButtonFetchXML_Click" HorizontalAlignment="Right" Width="206" Height="26" VerticalAlignment="Bottom"/>
+                    <ComboBox x:Name="Weather_BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" IsEnabled="False">
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
+                    </ComboBox>
+                    <tk:ColorPicker x:Name="Weather_ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40" IsEnabled="False"/>
+                    <ComboBox x:Name="Weather_WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                    </ComboBox>
+                    <ComboBox x:Name="Weather_IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
+                        <ComboBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                <Setter Property="Width" Value="94"/>
+                            </Style>
+                        </ComboBox.ItemContainerStyle>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource timeConverter}}" Style="{StaticResource TextBlockStyleTextTrimming}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button x:Name="Weather_SetImageAsWallpaper" Content="Set WP" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="Bing_setCurrentImageAsBackground" HorizontalAlignment="Left" Width="102"/>
+                    <Button Background="Transparent" Name="button2" ToolTip="Open image with associated application" Click="Weather_Image_Click" Margin="300,57,0,142">
+                        <Image Stretch="Uniform"/>
+                    </Button>
+                    <Grid/>
+                    <Grid Margin="0,0,0,33" Height="70" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="206">
+                        <Image x:Name="image1" HorizontalAlignment="Left" Stretch="Uniform" Width="100" Margin="-10,0,0,0"/>
+                        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,0,0,0" TextWrapping="Wrap" Text="{Binding Path=CurrentTemperature, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Height="43" Width="131" FontWeight="Bold" FontSize="40"/>
+                        <TextBlock x:Name="textBlock1" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,48,0,0" TextWrapping="Wrap" Text="---" VerticalAlignment="Top" Width="131" Height="22" FontSize="14.667"/>
+                    </Grid>
+                    <DataGrid x:Name="dataGrid1" HorizontalAlignment="Left" Margin="3,31,0,2" Width="282" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" ItemsSource="{Binding WeatherDataGridItem, IsAsync=True}" Drop="Weather_dataGrid_Drop">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox x:Name="checkbox" IsChecked="{Binding Path=IsEnabled}" Checked="Weather_OnChecked" Unchecked="Weather_OnChecked"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Name" Width="*" IsReadOnly="True" CanUserSort="True" Binding="{Binding Name}" ElementStyle="{StaticResource TextBlockStyleTextTrimming}"/>
+                            <DataGridTemplateColumn CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Background="Transparent" Tag="{Binding Path=Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
+                                            <Rectangle Width="12" Height="12">
+                                                <Rectangle.Fill>
+                                                    <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_close}" />
+                                                </Rectangle.Fill>
+                                            </Rectangle>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Label x:Name="label2" Content="Upcoming Picture:" Margin="0,31,0,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="206"/>
+                    <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="300,137,0,0" VerticalAlignment="Top" Width="50"/>
+                    <Button x:Name="button1" Content="Button" HorizontalAlignment="Left" Margin="456,137,0,0" VerticalAlignment="Top" Width="50"/>
+                    <Button x:Name="button3" Content="Random" HorizontalAlignment="Left" Margin="355,137,0,0" VerticalAlignment="Top" Width="96" Click="Weather_Random_Click"/>
+                </Grid>
+            </TabItem>
         </TabControl>
         <!-- the popup that is displayed if user moves rows -->
         <Popup x:Name="popup" IsHitTestVisible="False" Placement="RelativePoint" PlacementTarget="{Binding ElementName=mainWindow}" AllowsTransparency="True">

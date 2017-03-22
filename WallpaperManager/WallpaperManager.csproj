@@ -117,6 +117,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="DataGridHelper.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="ValueConverter.cs" />
     <Compile Include="TextBlockUtils.cs" />
     <Compile Include="Utilities.cs" />
@@ -201,6 +202,26 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="app_32x32.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="WeatherIcons\01d.png" />
+    <Resource Include="WeatherIcons\01n.png" />
+    <Resource Include="WeatherIcons\02d.png" />
+    <Resource Include="WeatherIcons\02n.png" />
+    <Resource Include="WeatherIcons\03d.png" />
+    <Resource Include="WeatherIcons\03n.png" />
+    <Resource Include="WeatherIcons\04d.png" />
+    <Resource Include="WeatherIcons\04n.png" />
+    <Resource Include="WeatherIcons\09d.png" />
+    <Resource Include="WeatherIcons\09n.png" />
+    <Resource Include="WeatherIcons\10d.png" />
+    <Resource Include="WeatherIcons\10n.png" />
+    <Resource Include="WeatherIcons\11d.png" />
+    <Resource Include="WeatherIcons\11n.png" />
+    <Resource Include="WeatherIcons\13d.png" />
+    <Resource Include="WeatherIcons\13n.png" />
+    <Resource Include="WeatherIcons\50d.png" />
+    <Resource Include="WeatherIcons\50n.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.1.28.3\build\Fody.targets" Condition="Exists('..\packages\Fody.1.28.3\build\Fody.targets')" />
