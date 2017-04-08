@@ -12,12 +12,7 @@ using System.Windows.Input;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Configuration;
-using System.Net;
-using System.Xml;
-using System.Windows.Media.Imaging;
-using System.Globalization;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+using WallpaperManager.ViewModels;
 
 namespace WallpaperManager
 {
@@ -79,6 +74,7 @@ namespace WallpaperManager
         }
         #endregion
 
+        
         #region BackgroundType
         public enum BackgroundType : int
         {
@@ -88,13 +84,16 @@ namespace WallpaperManager
         }
         #endregion
 
+        public static readonly List<string> backgroundTypes = new List<string>() { "Solid Color", "Picture", "Slideshow" };
+        public static readonly List<string> wallpaperStyles = new List<string>() { "Fill", "Fit", "Stretch", "Tile", "Centre", "Span" };
+
         private static readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
         private static readonly string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
         private static readonly WallpaperHandler.Style fallbackWallpaperStyle = WallpaperHandler.Style.Stretch;
 
         private int wallpaperIndex = 0;
         private double interval = 10;
-        //private WallpaperHandler.Style wallpaperStyle = WallpaperHandler.Style.Fill;
+        ///private WallpaperHandler.Style wallpaperStyle = WallpaperHandler.Style.Fill;
         private BackgroundType background = BackgroundType.SolidColor;
         private System.Drawing.Color backgroundColor;
 
@@ -112,9 +111,18 @@ namespace WallpaperManager
 
         //TODO: Write more userfriendly GUI
 
+        private MainWindowViewModel mainWindowViewModel = new MainWindowViewModel();
+        private WeatherViewModel weatherViewModel = new WeatherViewModel();
+        private BingViewModel bingViewModel = new BingViewModel();
+
         public MainWindow()
         {
             InitializeComponent();
+
+            mainWindow.DataContext = mainWindowViewModel;
+
+            TabWeather.DataContext = weatherViewModel;
+            TabBing.DataContext = bingViewModel;
 
             try
             {
@@ -173,14 +181,11 @@ namespace WallpaperManager
 
             InitGUI();
 
-            // Bing
-            Bing_UpdateGUI();
-
             // Weather
             if (!Directory.Exists(applicationDataPath + @"\weather")) Directory.CreateDirectory(applicationDataPath + @"\weather");
             if (!Directory.Exists(applicationDataPath + @"\weather\packages")) Directory.CreateDirectory(applicationDataPath + @"\weather\packages");
 
-            dataGrid1.ItemsSource = weatherDataGridData;
+           // dataGrid1.ItemsSource = weatherDataGridData;
         }
 
         #region Dispatcher Timer
@@ -738,253 +743,17 @@ namespace WallpaperManager
         #endregion
         #endregion
 
-
-        #region BingItem
-        public class BingItem
-        {
-            public DateTime Date { get; set; }
-            public string Url { get; set; }
-            public string Name { get; set; }
-            public string Resolution { get; set; }
-            public string FilePath { get; set; }
-            public string Copyright { get; set; }
-            public string CopyrightLink { get; set; }
-
-            public BingItem()
-            {
-                Date = new DateTime();
-                Url = string.Empty;
-                Name = string.Empty;
-                Resolution = string.Empty;
-                FilePath = string.Empty;
-                Copyright = string.Empty;
-                CopyrightLink = string.Empty;
-            }
-
-            public BingItem(DateTime date, string url, string name, string resolution, string filepath, string copyright, string copyrightlink)
-            {
-                Date = date;
-                Url = url;
-                Name = name;
-                Resolution = resolution;
-                FilePath = filepath;
-                Copyright = copyright;
-                CopyrightLink = copyrightlink;
-            }
-        }
-        #endregion
-
         /** Bing Image Handler **/
-
-        private static readonly string bingMainDir = applicationDataPath + @"\bing\";
-        private static readonly string bingXMLFile = bingMainDir + @"bing.xml";
-        private static readonly string bingWallpaperDir = bingMainDir + @"wallpaper\";
-        private static readonly string bingThumbnailDir = bingMainDir + @"thumbnails\";
-
-        int bIndex = 0;
-        List<BingItem> bingWallpapers = new List<BingItem>();
-        BingItem currentBingImage = null;
-        string bingXMLMD5Hash = string.Empty;
-        bool isFetching = false;
-        List<BitmapSource> bmpList = new List<BitmapSource>();
-
-        /* Bing Properties */
-        private static readonly string bingXMLUrl = "http://www.bing.com/hpimagearchive.aspx?format=xml&idx=-1&n={0}&mkt={1}";
-        private static readonly string bingImageUrl = "http://www.bing.com{0}_{1}.jpg";
-
-        /* Customizable & Saveable Properties */
-        private static string thumbnailResolution = "1280x720";
-        private static string region = "de-DE";
-        private static int n = 8; /// > 8 not supported
-
-        #region Asynchronous Operations
-        private async Task Bing_DownloadXMLAsync()
-        {
-            try
-            {
-                using (WebClient wc = new WebClient())
-                {
-                    wc.Encoding = System.Text.Encoding.GetEncoding("UTF-8");
-                    string xml = await wc.DownloadStringTaskAsync(string.Format(bingXMLUrl, n, region));
-
-                    XmlDocument xmlDoc = new XmlDocument();
-                    xmlDoc.LoadXml(xml);
-                    using (StringWriter sw = new StringWriter())
-                    {
-                        XmlTextWriter textWriter = new XmlTextWriter(sw);
-                        textWriter.Formatting = Formatting.Indented;
-                        xmlDoc.WriteTo(textWriter);
-                        xmlDoc.Save(bingXMLFile);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine("!Error: " + e.ToString());
-            }
-        }
-
-        private async Task Bing_DownloadImageAsync(BingItem item, string resolution)
-        {
-            string filePath = bingWallpaperDir + item.Name + "_" + resolution + ".jpg";
-            if (!File.Exists(filePath))
-            {
-                using (WebClient wc = new WebClient())
-                {
-                    await wc.DownloadFileTaskAsync(new Uri(string.Format(bingImageUrl, item.Url, resolution)), filePath);
-                }
-            }
-            else
-                Debug.WriteLine("File '" + filePath + "' already exists");
-        }
-
-        private async Task Bing_DownloadMultipleImagesAsync(List<BingItem> imagelist, string resolution)
-        {
-            await Task.WhenAll(imagelist.Select(image => Bing_DownloadImageAsync(image, resolution)));
-        }
-
-        private async Task<BitmapSource> Bing_DownloadThumbnailAsync(BingItem item)
-        {
-            BitmapSource bmp = null;
-            if (!File.Exists(item.FilePath))
-            {
-
-                byte[] imgData = null;
-                using (WebClient wc = new WebClient())
-                {
-                    imgData = await wc.DownloadDataTaskAsync(string.Format(bingImageUrl, item.Url, thumbnailResolution));
-                }
-
-                using (MemoryStream ms = new MemoryStream(imgData))
-                {
-                    var decoder = BitmapDecoder.Create(ms, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-                    bmp = decoder.Frames[0];
-                    Utilities.SaveImg(bmp, item.FilePath);
-                }
-            }
-            else
-            {
-                bmp = new BitmapImage(new Uri(item.FilePath));
-                Debug.WriteLine("File '" + item.FilePath + "' already exists");
-            }
-            return bmp;
-        }
-
-        private async Task<BitmapSource[]> Bing_DownloadMultipleThumbnailsAsync(List<BingItem> thmbnList)
-        {
-            return await Task.WhenAll(thmbnList.Select(item => Bing_DownloadThumbnailAsync(item)));
-        }
-        #endregion
-
         #region GUI Events
-        private async void button_Click(object sender, RoutedEventArgs e)
-        {
-            if (isFetching) return;
-            isFetching = true;
-            if (File.Exists(bingXMLFile))
-            {
-                DateTime modification = File.GetLastWriteTime(bingXMLFile);
-                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Year)
-                {
-                    Debug.WriteLine("File already exists and is not up to date!");
-                    await Bing_DownloadXMLAsync();
-                }
-            }
-            else
-            {
-                await Bing_DownloadXMLAsync();
-            }
-            isFetching = false;
-            string currentXMLFileMD5Hash = Utilities.GetMD5HashFromFile(bingXMLFile);
-            if (bingXMLMD5Hash.Equals(currentXMLFileMD5Hash)) return;
-
-            XmlDocument doc = new XmlDocument();
-            try
-            {
-                doc.Load(bingXMLFile);
-            }
-            catch (Exception)
-            {
-                Debug.WriteLine("Failed to open XML file.");
-                return;
-            }
-            /*
-            catch (XmlException)
-            {
-                Debug.WriteLine("Failed to open XML file.");
-                await Bing_DownloadXMLAsync();
-                return;
-            }
-            */
-            XmlNodeList nodes = doc.SelectNodes("/images/image");
-            foreach (XmlNode node in nodes)
-            {
-                BingItem item = new BingItem();
-                item.Date = DateTime.ParseExact(node.SelectSingleNode("enddate").InnerText, "yyyyMMdd", CultureInfo.InvariantCulture);
-                item.Url = node.SelectSingleNode("urlBase").InnerText;
-                item.Name = (item.Url.Split('/'))[4];
-                item.Resolution = thumbnailResolution;
-                item.FilePath = bingThumbnailDir + item.Name + "_" + thumbnailResolution + ".bmp";
-                item.Copyright = node.SelectSingleNode("copyright").InnerText;
-                item.CopyrightLink = node.SelectSingleNode("copyrightlink").InnerText;
-                bingWallpapers.Add(item);
-            }
-            bmpList = (await Bing_DownloadMultipleThumbnailsAsync(bingWallpapers)).ToList();
-            bingXMLMD5Hash = currentXMLFileMD5Hash;
-            Bing_UpdateGUI();
-            Bing_UpdateImage();
-        }
-
-        private void Bing_UpdateGUI()
-        {
-            Bing_ImageLeftButton.IsEnabled = (bingWallpapers.Count > 0 ? true : false);
-            Bing_ImageLeftButton.Opacity = (bingWallpapers.Count > 0 ? 1 : .5f);
-            Bing_ImageRightButton.IsEnabled = (bingWallpapers.Count > 0 ? true : false);
-            Bing_ImageRightButton.Opacity = (bingWallpapers.Count > 0 ? 1 : .5f);
-        }
-
-        private void Bing_UpdateImage()
-        {
-            currentBingImage = bingWallpapers.ElementAt(bIndex);
-            image.Source = bmpList.ElementAt(bIndex);
-            label1.Content = string.Format("{0}.{1}.{2}", currentBingImage.Date.Day.ToString().PadLeft(2, '0'), currentBingImage.Date.Month.ToString().PadLeft(2, '0'), currentBingImage.Date.Year);
-
-            Bing_OpenBingImageCopyrightLink.ToolTip = currentBingImage.Copyright;
-        }
-
-        private void Bing_imageControlButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (((Button)sender).Name == "Bing_ImageRightButton")
-                bIndex = ((bIndex - 1 < 0) ? bingWallpapers.Count - 1 : bIndex - 1);
-            else
-                bIndex = (bIndex + 1 > bingWallpapers.Count - 1 ? 0 : bIndex + 1);
-
-            Bing_UpdateImage();
-        }
-
-        private async void Bing_downloadCurrentImage(object sender, RoutedEventArgs e)
-        {
-            if (bingWallpapers.Count <= 0) return;
-            await Bing_DownloadImageAsync(bingWallpapers.ElementAt(bIndex), Bing_SelectDownloadResolution.Text);
-        }
-
         private async void Bing_setCurrentImageAsBackground(object sender, RoutedEventArgs e)
         {
+            /*
             if (bingWallpapers.Count <= 0) return;
             BingItem currentItem = bingWallpapers.ElementAt(bIndex);
             string res = Bing_SelectDownloadResolution.Text;
             await Bing_DownloadImageAsync(currentItem, res);
             WallpaperHandler.Set(bingWallpaperDir + currentItem.Name + "_" + res + ".jpg", WallpaperHandler.Style.Fill, backgroundColor);
-        }
-
-        private void Bing_openBingImageCopyrightLink(object sender, RoutedEventArgs e)
-        {
-            if (currentBingImage != null) Process.Start(currentBingImage.CopyrightLink);
-        }
-
-        private void Bing_openWallpaperFolder(object sender, RoutedEventArgs e)
-        {
-            Process.Start(bingWallpaperDir);
+            */
         }
         #endregion
         /*
@@ -1017,229 +786,20 @@ namespace WallpaperManager
         */
 
         /// <summary>
-        /// Weather
+        /// WeatherTab
         /// </summary>
-
-        private class WeatherDetails
-        {
-            public string Weather { get; set; }
-            public string WeatherIcon { get; set; }
-            public string WeatherDay { get; set; }
-            public string Temperature { get; set; }
-            public string MaxTemperature { get; set; }
-            public string MinTemperature { get; set; }
-            public string WindDirection { get; set; }
-            public string WindSpeed { get; set; }
-            public string Humidity { get; set; }
-            public string WeatherConditionCode { get; set; }
-        }
-
-        private class WeatherDataGridItem
-        {
-            public bool IsEnabled { get; set; }
-            public string Name { get; set; }
-            //public string Author { get; set; }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private static readonly string appid = "0c42e9b22f0b4a9c8d69ed09e4f1123c";
-        private static readonly string openWeatherUrl = "http://api.openweathermap.org/data/2.5/forecast/daily?q={0}&type=like&mode=xml&units=metric&cnt=3&lang={1}&appid={2}";
-        private static readonly string openWeatherFilePath = applicationDataPath + @"\weather\openweather.xml";
-        private static readonly string packagePath = applicationDataPath + @"\weather\packages\";
-        private string location = "Saarbrücken";
-        private string language = "de";
-
-        private string currentPackageName = "Test";
-        //private Dictionary<string, List<string>> weatherImagesDictionary = new Dictionary<string, List<string>>();
-        private ObservableCollection<WeatherDataGridItem> weatherDataGridData = new ObservableCollection<WeatherDataGridItem>();
-
-        private List<WeatherDetails> weatherDetailsList = new List<WeatherDetails>();
-
-        private Dictionary<string, Dictionary<string, List<string>>> packagesDictionary = new Dictionary<string, Dictionary<string, List<string>>>();
-        private Dictionary<string, List<string>> imagesDictionary = new Dictionary<string, List<string>>();
-
-
-        private string currentTemperature = "--.--°";
-
-        public string CurrentTemperature
-        {
-            get { return currentTemperature; }
-            set
-            {
-                currentTemperature = value;
-                //OnPropertyChanged("CurrentTemperature");
-            }
-        }
-
-
-        private async Task DownloadOpenWeatherXmlAsync() {
-            using (WebClient wc = new WebClient())
-            {
-                wc.Encoding = System.Text.Encoding.GetEncoding("UTF-8");
-                try
-                {
-                    string response = await wc.DownloadStringTaskAsync(string.Format(openWeatherUrl, location, language, appid));
-                    if (!(response.Contains("message") && response.Contains("cod")))
-                    {
-                        XmlDocument xmlDoc = new XmlDocument();
-                        xmlDoc.LoadXml(response);
-                        using (StringWriter sw = new StringWriter())
-                        {
-                            XmlTextWriter textWriter = new XmlTextWriter(sw);
-                            textWriter.Formatting = Formatting.Indented;
-                            xmlDoc.WriteTo(textWriter);
-                            xmlDoc.Save(openWeatherFilePath);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine("!Error: " + e.ToString());
-                }
-            }
-        }
-
-        private async void WeatherButtonFetchXML_Click(object sender, RoutedEventArgs e)
-        {
-            if (File.Exists(openWeatherFilePath))
-            {
-                DateTime modification = File.GetLastWriteTime(openWeatherFilePath);
-                if (modification.Day != DateTime.Now.Day || modification.Month != DateTime.Now.Month || modification.Year != DateTime.Now.Year)
-                {
-                    Debug.WriteLine("File already exists and is not up to date!");
-                    await DownloadOpenWeatherXmlAsync();
-                }
-            }
-            else
-            {
-                await DownloadOpenWeatherXmlAsync();
-            }
-
-            XElement xEl = XElement.Load(openWeatherFilePath);
-            weatherDetailsList = GetWeatherInfo(xEl);
-
-            CurrentTemperature = weatherDetailsList.First().Temperature;
-
-            //textBlock.Text = weatherDetailsList.First().Temperature;
-            textBlock1.Text = weatherDetailsList.First().Weather;
-            image1.Source = new BitmapImage(new Uri("pack://application:,,,/WeatherIcons/" + weatherDetailsList.First().WeatherIcon + ".png"));
-
-            Console.WriteLine(weatherDetailsList.First().WeatherConditionCode);
-
-            string weatherConditionCode = weatherDetailsList.First().WeatherConditionCode;
-            string curPackagePath = packagePath + currentPackageName + @"\";
-           
-            if (char.GetNumericValue(weatherConditionCode.ElementAt(2)) > 0 && File.Exists(curPackagePath + weatherConditionCode + ".jpg"))
-                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode + ".jpg")) };
-            else if (char.GetNumericValue(weatherConditionCode.ElementAt(1)) > 0 && File.Exists(curPackagePath + weatherConditionCode.Remove(2, 1).Insert(2, "0") + ".jpg"))
-                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode.Remove(2, 1).Insert(2, "0") + ".jpg")) };
-            else if (File.Exists(curPackagePath + weatherConditionCode.Remove(1, 2).Insert(1, "00") + ".jpg"))
-                button2.Content = new Image { Source = new BitmapImage(new Uri(curPackagePath + weatherConditionCode.Remove(1, 2).Insert(1, "00") + ".jpg")) };
-            else
-                Console.WriteLine("No Image found!");
-        }
-
-        private List<WeatherDetails> GetWeatherInfo(XElement xEl)
-        {
-            IEnumerable<WeatherDetails> weatherDetails = xEl.Descendants("time").Select((el) =>
-                new WeatherDetails
-                {
-                    Humidity = el.Element("humidity").Attribute("value").Value + "%",
-                    MaxTemperature = el.Element("temperature").Attribute("max").Value + "°",
-                    MinTemperature = el.Element("temperature").Attribute("min").Value + "°",
-                    Temperature = el.Element("temperature").Attribute("day").Value + "°",
-                    Weather = el.Element("symbol").Attribute("name").Value,
-                    WeatherDay = DayOfTheWeek(el),
-                    WeatherIcon = el.Element("symbol").Attribute("var").Value, //WeatherIconPath(el),
-                    WindDirection = el.Element("windDirection").Attribute("name").Value,
-                    WindSpeed = el.Element("windSpeed").Attribute("mps").Value + "mps",
-                    WeatherConditionCode = WeatherConditionCode(el)
-        });
-
-            return weatherDetails.ToList();
-        }
-
-        private static string DayOfTheWeek(XElement el)
-        {
-            DayOfWeek dW = Convert.ToDateTime(el.Attribute("day").Value).DayOfWeek;
-            return dW.ToString();
-        }
-
-        private static string WeatherConditionCode(XElement el)
-        {
-            string symbolVar = el.Element("symbol").Attribute("var").Value;
-            string symbolNumber = el.Element("symbol").Attribute("number").Value;
-            string dayOrNight = symbolVar.ElementAt(2).ToString(); // d or n
-            return string.Format("{0}{1}", symbolNumber, dayOrNight);
-        }
-
-        private void Weather_Image_Click(object sender, RoutedEventArgs e)
-        {
-            //Process.Start(packagePath + currentPackageName + @"\" + "800n.jpg");
-        }
-
         private void Weather_dataGrid_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] filepaths = (string[])e.Data.GetData(DataFormats.FileDrop);
-                foreach (string filepath in filepaths)
-                {
-                    string packageName = Path.GetFileNameWithoutExtension(filepath);
-                    weatherDataGridData.Add(new WeatherDataGridItem
-                    {
-                        IsEnabled = false,
-                        Name = packageName
-                    });
-                    if (packagesDictionary.ContainsKey(packageName)) throw new Exception("Package already in dictionary!"); // TODO: do something useful instead of just throwing random errors!
-                    Dictionary<string, List<string>> package = new Dictionary<string, List<string>>();
-                    WeatherTreeScan(ref package, filepath);
-                    packagesDictionary.Add(packageName, package);
-                }
+                weatherViewModel.AddPackageToDataGrid((string[])e.Data.GetData(DataFormats.FileDrop));
             }
-        }
-
-        private void WeatherTreeScan(ref Dictionary<string, List<string>> package, string path)
-        {
-            if (Directory.Exists(path))
-            {
-                AddFilesToDictionary(ref package, Directory.GetFiles(path));
-                //Loop trough each directory
-                foreach (string dir in Directory.GetDirectories(path))
-                {
-                    try
-                    {
-                        WeatherTreeScan(ref package, dir); //Recursive call to get subdirs
-                    }
-                    catch (UnauthorizedAccessException e)
-                    {
-                        DebugLog.Error(e.Message);
-                        continue;
-                    }
-                }
-            }
-        }
-
-        private void AddFilesToDictionary(ref Dictionary<string, List<string>> packageDictionary, string[] filepaths)
-        {
-            foreach (string filepath in filepaths)
-            {
-                string weathercode = Path.GetFileNameWithoutExtension(filepath).Truncate(4);
-                if (packageDictionary.ContainsKey(weathercode))
-                    packageDictionary[weathercode].Add(filepath);
-                else
-                    packageDictionary.Add(weathercode, new List<string> { filepath });
-            }
+            
         }
 
         private void Weather_Random_Click(object sender, RoutedEventArgs e)
         {
+            /*
             if (weatherDetailsList == null) return; //TODO: Initialize when not initialized
             string weatherCode = weatherDetailsList.First().WeatherConditionCode;
 
@@ -1250,8 +810,10 @@ namespace WallpaperManager
             }
             else
                 button2.Content = new Image();
+            */
         }
 
+        /*
         private Image PickRandomImage(string weatherCode)
         {
             Uri oldUri = ((BitmapImage)((Image)button2.Content).Source).UriSource;
@@ -1260,24 +822,14 @@ namespace WallpaperManager
             if (oldUri.Equals(randUri)) PickRandomImage(weatherCode);
             return new Image { Source = new BitmapImage(randUri) };
         }
+        */
 
         private void Weather_OnChecked(object sender, RoutedEventArgs e)
         {
-            if (!imagesDictionary.ContainsKey("packages")) imagesDictionary.Add("packages", new List<string>());
             CheckBox checkBox = (CheckBox)e.OriginalSource;
-            WeatherDataGridItem parent = (WeatherDataGridItem) (DataGridHelper.TryFindParent<DataGridRow>(checkBox)).Item;
-            if ((checkBox.IsChecked == true) && !imagesDictionary["packages"].Contains(parent.Name))
-            {
-                imagesDictionary["packages"].Add(parent.Name);
-                packagesDictionary[parent.Name].ToList().ForEach(x => imagesDictionary[x.Key] = x.Value);
-            }
-            else if ((checkBox.IsChecked == false) && imagesDictionary["packages"].Contains(parent.Name))
-            {
-                imagesDictionary["packages"].Remove(parent.Name);
-                //packagesDictionary[parent.Name].ToList().ForEach(x => x.Value.ToList().ForEach(y => imagesDictionary[x.Key].Remove(y)));
-            }
-            var d = imagesDictionary;
-            var c = packagesDictionary;
+            WeatherViewModel.WeatherDataGridItem parent = (WeatherViewModel.WeatherDataGridItem)(DataGridHelper.TryFindParent<DataGridRow>(checkBox)).Item;
+            weatherViewModel.AddPackageToImagePool(checkBox.IsChecked, parent.Name);
         }
+        
     }
 }

@@ -1,6 +1,4 @@
 ﻿<Controls:MetroWindow
-        x:Class="WallpaperManager.MainWindow"
-        x:Name="mainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,33 +6,46 @@
         xmlns:tk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:local="clr-namespace:WallpaperManager"
         xmlns:Properties="clr-namespace:WallpaperManager.Properties"
-        mc:Ignorable="d"
-        
-        Title="Wallpaper Manager (v1.1 inDev)" MinWidth="520" Width="520" MinHeight="350" Height="350"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:tb="http://www.hardcodet.net/taskbar"
+        xmlns:ViewModels="clr-namespace:WallpaperManager.ViewModels"
+        xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+        xmlns:cmds="clr-namespace:WallpaperManager.Commands"
+        x:Class="WallpaperManager.MainWindow"
+        x:Name="mainWindow"
+        mc:Ignorable="d"
+        
+        Title="Wallpaper Manager (v1.2 inDev)" MinWidth="520" Width="520" MinHeight="350" Height="350"
         GlowBrush="{DynamicResource AccentColorBrush}"
         ShowIconOnTitleBar="True" Loaded="MainWindow_Loaded" Closing="MainWindow_Closing" StateChanged="MainWindow_StateChanged"
         >
-    <Controls:MetroWindow.RightWindowCommands>
-        <Controls:WindowCommands>
-            <Button Name="switchTheme" Content="Dark Theme" Click="switchTheme_Click"/>
-            <Button Content="About"/>
-        </Controls:WindowCommands>
-    </Controls:MetroWindow.RightWindowCommands>
     <Controls:MetroWindow.Resources>
         <Style x:Key="TextBlockStyleTextTrimming" TargetType="{x:Type TextBlock}">
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Setter Property="local:TextBlockUtils.AutoTooltip" Value="True"/>
         </Style>
+        <Style x:Key="ButtonEnabledStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Opacity" Value=".5" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="True" >
+                    <Setter Property="Opacity" Value="1" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <local:ByteConverter x:Key="byteConverter"/>
         <local:TimeConverter x:Key="timeConverter"/>
     </Controls:MetroWindow.Resources>
+    <Controls:MetroWindow.RightWindowCommands>
+        <Controls:WindowCommands>
+            <Button x:Name="switchTheme" Content="Dark Theme" Click="switchTheme_Click"/>
+            <Button Content="About"/>
+        </Controls:WindowCommands>
+    </Controls:MetroWindow.RightWindowCommands>
     <Grid>
         <!-- TrayIcon -->
         <tb:TaskbarIcon IconSource="app.ico" MenuActivation="LeftOrRightClick" ToolTipText="Wallpaper Manager (v1.1 inDev)" TrayMiddleMouseDown="TrayIcon_ButtonExitClick" TrayMouseDoubleClick="TrayIcon_ButtonRestoreClick">
             <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu Name="trayIcon_ContextMenu">
+                <ContextMenu x:Name="trayIcon_ContextMenu">
                     <!--
                     <MenuItem StaysOpenOnClick="True" Click="cm_nextWallpaper_button_Click">
                         <MenuItem.Header>
@@ -109,7 +120,7 @@
                     </ComboBox>
                     -->
                     <Separator/>
-                    <MenuItem Header="Restore (Double Click)" Name="TrayIcon_ButtonRestore" Click="TrayIcon_ButtonRestoreClick"/>
+                    <MenuItem Header="Restore (Double Click)" x:Name="TrayIcon_ButtonRestore" Click="TrayIcon_ButtonRestoreClick"/>
                     <MenuItem Header="Exit (Middle Mouse)" Click="TrayIcon_ButtonExitClick"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
@@ -118,7 +129,7 @@
         <!-- MainWindow -->
         <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <!-- TabCustom-->
-            <TabItem Header="Custom" Name="TabCustom">
+            <TabItem Header="Custom" x:Name="TabCustom">
                 <Grid Background="Transparent" MouseLeftButtonUp="OnMouseLeftButtonUp" MouseMove="OnMouseMove">
                     <!-- SideBar -->
                     <Button x:Name="ButtonOpenDir" Margin="0,31,3,0" VerticalAlignment="Top" HorizontalAlignment="Right" Height="30" Width="40" Click="ButtonOpenDir_Click" ToolTip="Open Directory">
@@ -152,18 +163,18 @@
                     <!-- TopBar -->
                     <Button x:Name="ButtonChangeWP" Content="Change" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="ButtonChangeWP_Click" HorizontalAlignment="Left" Width="102"/>
                     <ComboBox x:Name="BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" SelectionChanged="BackgroundComboBox_SelectionChanged">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Solid Color</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Solid Color"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Picture"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Slideshow"/>
                     </ComboBox>
                     <tk:ColorPicker x:Name="ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40"/>
                     <ComboBox x:Name="WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="WPStyleComboBox_SelectionChanged">
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fill"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fit"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Stretch"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Tile"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Centre"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Span"/>
                     </ComboBox>
                     <ComboBox x:Name="IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" SelectionChanged="IntervalComboBox_SelectionChanged">
                         <ComboBox.ItemContainerStyle>
@@ -188,18 +199,18 @@
                             <DataGridTemplateColumn>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <CheckBox x:Name="checkbox" IsChecked="{Binding Path=IsEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                        <CheckBox x:Name="checkbox" IsChecked="{Binding IsEnabled, UpdateSourceTrigger=PropertyChanged}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="Img" CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Background="Transparent" Tag="{Binding Path=Name}" Height="30" Width="50" ToolTip="Open image with associated application" Click="ImageButton_Click">
+                                        <Button Background="Transparent" Tag="{Binding Name}" Height="30" Width="50" ToolTip="Open image with associated application" Click="ImageButton_Click">
                                             <Button.Template>
                                                 <ControlTemplate>
                                                     <Border HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Image Source="{Binding Path=Path}"/>
+                                                        <Image Source="{Binding Path}"/>
                                                     </Border>
                                                 </ControlTemplate>
                                             </Button.Template>
@@ -215,7 +226,7 @@
                             <DataGridTemplateColumn CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Background="Transparent" Tag="{Binding Path=Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
+                                        <Button Background="Transparent" Tag="{Binding Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
                                             <Rectangle Width="12" Height="12">
                                                 <Rectangle.Fill>
                                                     <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_close}" />
@@ -232,21 +243,24 @@
             </TabItem>
 
             <!-- TabBing -->
-            <TabItem Header="Bing" Name="TabBing">
+            <TabItem Header="Bing" x:Name="TabBing">
+                <!-- Execute when main window is loaded -->
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="Loaded">
+                        <i:InvokeCommandAction Command="{Binding BtnLoadBingWallpapersCommand}"/>
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+                <!-- Tab Content -->
                 <Grid Background="#00E5E5E5">
-                    <Button x:Name="Bing_ButtonFetchXML" Content="Fetch XML" Margin="0,0,35,2" Padding="0" FontSize="13.333" Click="button_Click" HorizontalAlignment="Right" Width="70" Height="26" VerticalAlignment="Bottom"/>
-                    <ComboBox x:Name="Bing_BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" IsEnabled="False">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
-                    </ComboBox>
+                    <ComboBox x:Name="Bing_BackgroundComboBox" ToolTip="Background Type" HorizontalAlignment="Left" VerticalAlignment="Top" ItemsSource="{Binding CbMainWindowBackgroundType}" Width="100" Margin="110,0,0,0"/>
                     <tk:ColorPicker x:Name="Bing_ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40" IsEnabled="False"/>
-                    <ComboBox x:Name="Bing_WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                    <ComboBox x:Name="Bing_WPStyleComboBox" ItemsSource="{Binding CbMainWindowWallpaperStyle}" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fill"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fit"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Stretch"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Tile"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Centre"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Span"/>
                     </ComboBox>
                     <ComboBox x:Name="Bing_IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
                         <ComboBox.ItemContainerStyle>
@@ -262,53 +276,53 @@
                     </ComboBox>
                     <Button x:Name="Bing_SetImageAsWallpaper" Content="Set WP" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="Bing_setCurrentImageAsBackground" HorizontalAlignment="Left" Width="102"/>
                     <Grid>
-                        <Image x:Name="image" Margin="10,32,10,35" Stretch="Uniform">
-                            <Image.ContextMenu>
-                                <ContextMenu >
-                                    <MenuItem Name="Bing_BingImageInfoSwitchMenuItem" Header="Show Bing Image Info" IsCheckable="True" />
-                                </ContextMenu>
-                            </Image.ContextMenu>
-                        </Image>
+                        <Grid.ContextMenu>
+                            <ContextMenu >
+                                <!-- <MenuItem x:Name="Bing_BingImageInfoSwitchMenuItem" Header="Show Bing Image Info" IsCheckable="True" /> -->
+                                <MenuItem x:Name="MainWindow_BoolSynchroniseWallpaperSettings" Header="Synchronise wallpaper setting" />
+                                <Separator/>
+                                <MenuItem x:Name="Bing_BoolCircleBingWallpapers" Header="Circle Images" IsCheckable="True" IsChecked="{Binding BoolCircleBingWallpapers}" Command="{Binding BoolCircleBingWallpapers}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}" />
+                                <MenuItem x:Name="Bing_BoolOpenWallpaperAfterDownload" Header="Open wallpaper after download" IsCheckable="True" IsChecked="{Binding BoolOpenWallpaperAfterDownload}" Command="{Binding BoolOpenWallpaperAfterDownload}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}" />
+                            </ContextMenu>
+                        </Grid.ContextMenu>
+                        <Image x:Name="Bing_ImgCurrentBingWallpaper" Source="{Binding ImgBingWallpaper}" Margin="0,32,0,35" Stretch="Uniform"/>
+                        <Button x:Name="Bing_BtnOpenCurrentBingWallpaper" ToolTip="Open upcoming image with associated application" Background="Transparent" Command="{Binding BtnOpenCurrentBingWallpaperCommand}" Margin="42,29,42,31"/>
                     </Grid>
-                    <Button x:Name="Bing_ImageLeftButton" HorizontalAlignment="Left" Margin="3,0,0,2" VerticalAlignment="Bottom" Width="27" Click="Bing_imageControlButtonClick" Height="26">
+                    <Button x:Name="Bing_BtnDisplayNextBingWallpaperLeft" HorizontalAlignment="Left" VerticalAlignment="Bottom" Command="{Binding BtnDisplayNextBingWallpaperCommand}" CommandParameter="left"  Style="{StaticResource ButtonEnabledStyle}" Width="27" Height="26" Margin="3,0,0,2">
                         <Rectangle Width="7.5" Height="10">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_chevron_left}"/>
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
-                    <ComboBox x:Name="Bing_SelectDownloadResolution" ToolTip="Select image resolution" Margin="36,0,0,2" VerticalAlignment="Bottom" SelectedIndex="3" HorizontalAlignment="Left" Width="100">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">640x480</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">800x600</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">1280x720</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">1920x1080</ComboBoxItem>
-                    </ComboBox>
-                    <Button x:Name="Bing_DownloadBingImage" ToolTip="Download current image in selected resolution." Margin="141,0,0,2" Padding="0" FontSize="13.333" Click="Bing_downloadCurrentImage" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
+                    <ComboBox x:Name="Bing_CbBingWallpaperDownloadResolutions" ToolTip="Select image resolution" ItemsSource="{Binding CbBingWallpaperDownloadResolutions}" SelectedItem="{Binding CbSelectedBingWallpaperDonwloadResolution}" Margin="36,0,0,2" VerticalAlignment="Bottom" SelectedIndex="3" HorizontalAlignment="Left" Width="100"/>
+                    <Button x:Name="Bing_BtnDownloadCurrentBingWallpaperCommand" ToolTip="Download current image in selected resolution." Command="{Binding BtnDownloadCurrentBingWallpaperCommand}" Margin="141,0,0,2" Padding="0" FontSize="13.333" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
                         <Rectangle Width="15" Height="15">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_disk_download}"/>
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
-                    <Button x:Name="Bing_OpenBingImageCopyrightLink" Margin="0,0,110,2" Padding="0" FontSize="13.333" Click="Bing_openBingImageCopyrightLink" Height="26" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="30">
+                    <Button Margin="176,0,0,2" Padding="0" FontSize="13.333" Command="{Binding BtnOpenBingWallpapersDirCommand}" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
+                        <Rectangle Width="17" Height="13.5">
+                            <Rectangle.Fill>
+                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_folder_open}"/>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Button>
+                    <Label x:Name="Bing_StrCurrentBingWallpaperDate" Content="{Binding StrCurrentBingWallpaperDate}" Margin="211,0,145,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="Bing_BtnOpenCurrentBingWallpaperCopyrightLink" Command="{Binding BtnOpenCurrentBingWallpaperCopyrightLinkCommand}" ToolTip="{Binding BtnOpenBingWallpaperCopyrightLinkToolTip}" Margin="366,0,110,2" Padding="0" FontSize="13.333" Height="26" VerticalAlignment="Bottom">
                         <Rectangle Width="15" Height="15">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_magnify}"/>
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
-                    <Button x:Name="Bing_ImageRightButton" Margin="0,0,3,2" Click="Bing_imageControlButtonClick" HorizontalAlignment="Right" Width="27" Height="26" VerticalAlignment="Bottom">
+                    <Button x:Name="Bing_BtnLoadBingWallpapers" Content="Fetch XML" Command="{Binding BtnLoadBingWallpapersCommand}" Margin="0,0,35,2" Padding="0" FontSize="13.333" HorizontalAlignment="Right" Width="70" Height="26" VerticalAlignment="Bottom"/>
+                    <Button x:Name="Bing_BtnDisplayNextBingWallpaperRight" HorizontalAlignment="Right" VerticalAlignment="Bottom" Command="{Binding BtnDisplayNextBingWallpaperCommand}" CommandParameter="right" Style="{StaticResource ButtonEnabledStyle}" Width="27" Height="26" Margin="0,0,3,2">
                         <Rectangle Width="7.5" Height="10">
                             <Rectangle.Fill>
                                 <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_chevron_right}"/>
-                            </Rectangle.Fill>
-                        </Rectangle>
-                    </Button>
-                    <Label x:Name="label1" Content="" Margin="211,0,145,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Height="32" VerticalAlignment="Bottom"/>
-                    <Button x:Name="Bing_OpenWallpaperFolder" Margin="176,0,0,2" Padding="0" FontSize="13.333" Click="Bing_openWallpaperFolder" HorizontalAlignment="Left" Width="30" Height="26" VerticalAlignment="Bottom">
-                        <Rectangle Width="17" Height="13.5">
-                            <Rectangle.Fill>
-                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_folder_open}"/>
                             </Rectangle.Fill>
                         </Rectangle>
                     </Button>
@@ -323,23 +337,28 @@
                     -->
                 </Grid>
             </TabItem>
-
-            <!-- TabWeather -->
-            <TabItem Header="Weather" Name="TabWeather">
+            
+            <!-- Tab Weather -->
+            <TabItem Header="Weather" x:Name="TabWeather">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="Loaded">
+                        <i:InvokeCommandAction Command="{Binding BtnLoadWeatherCommand}"/>
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
                 <Grid Background="#00E5E5E5">
-                    <Button x:Name="Weather_ButtonFetchXML" Content="Fetch XML" Margin="0,0,0,2" Padding="0" FontSize="13.333" Click="WeatherButtonFetchXML_Click" HorizontalAlignment="Right" Width="206" Height="26" VerticalAlignment="Bottom"/>
+                    <Button x:Name="btnUpdateWeather" Content="Update Weather" Margin="0,0,0,2" Padding="0" FontSize="13.333" Command="{Binding BtnLoadWeatherCommand}" HorizontalAlignment="Right" Width="206" Height="26" VerticalAlignment="Bottom"/>
                     <ComboBox x:Name="Weather_BackgroundComboBox" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Top" Width="100" ToolTip="Background" IsEnabled="False">
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Picture</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Slideshow</ComboBoxItem>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Picture"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Slideshow"/>
                     </ComboBox>
                     <tk:ColorPicker x:Name="Weather_ColorPicker" ColorMode="ColorCanvas" SelectedColor="Black" ToolTip="Background Color" ShowAdvancedButton="False" UsingAlphaChannel="False" Height="26" VerticalAlignment="Top" Margin="215,0,0,0" HorizontalAlignment="Left" Width="40" IsEnabled="False"/>
                     <ComboBox x:Name="Weather_WPStyleComboBox" SelectedIndex="0" SelectedValuePath="Content" ToolTip="Wallpaper Style" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fill</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Fit</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Stretch</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Tile</ComboBoxItem>
-                        <ComboBoxItem HorizontalAlignment="Left" Width="94">Centre</ComboBoxItem>
-                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94">Span</ComboBoxItem>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fill"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Fit"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Stretch"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Tile"/>
+                        <ComboBoxItem HorizontalAlignment="Left" Width="94" Content="Centre"/>
+                        <ComboBoxItem ToolTipService.ShowOnDisabled="true" HorizontalAlignment="Left" Width="94" Content="Span"/>
                     </ComboBox>
                     <ComboBox x:Name="Weather_IntervalComboBox" IsSynchronizedWithCurrentItem="True" ToolTip="Wallpaper Interval" ItemsSource="{Binding}" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False">
                         <ComboBox.ItemContainerStyle>
@@ -354,30 +373,42 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                     <Button x:Name="Weather_SetImageAsWallpaper" Content="Set WP" Margin="3,0,0,0" VerticalAlignment="Top" Padding="0" Height="26" FontSize="13.333" Click="Bing_setCurrentImageAsBackground" HorizontalAlignment="Left" Width="102"/>
-                    <Button Background="Transparent" Name="button2" ToolTip="Open image with associated application" Click="Weather_Image_Click" Margin="300,57,0,142">
-                        <Image Stretch="Uniform"/>
+                    <Button x:Name="btnOpenUpcomingWallpaper" ToolTip="Open upcoming image with associated application" Background="Transparent" Command="{Binding BtnOpenUpcomingWallpaperCommand}" Margin="300,57,0,142">
+                        <Image x:Name="iUpcomingWallpaper" Source="{Binding UpcomingWallpaper}" Stretch="Uniform"/>
                     </Button>
                     <Grid/>
                     <Grid Margin="0,0,0,33" Height="70" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="206">
-                        <Image x:Name="image1" HorizontalAlignment="Left" Stretch="Uniform" Width="100" Margin="-10,0,0,0"/>
-                        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,0,0,0" TextWrapping="Wrap" Text="{Binding Path=CurrentTemperature, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Height="43" Width="131" FontWeight="Bold" FontSize="40"/>
-                        <TextBlock x:Name="textBlock1" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,48,0,0" TextWrapping="Wrap" Text="---" VerticalAlignment="Top" Width="131" Height="22" FontSize="14.667"/>
+                        <Image x:Name="iCurrentWeatherIcon" Source="{Binding CurrentWeatherIcon}" HorizontalAlignment="Left" Stretch="Uniform" Width="100" Margin="-18,0,0,0"/>
+                        <TextBlock x:Name="tbCurrentTemperature" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,0,0,0" TextWrapping="Wrap" Text="{Binding CurrentTemperature}" VerticalAlignment="Top" Height="43" Width="131" FontWeight="Bold" FontSize="40"/>
+                        <TextBlock x:Name="tbCurrentWeather" HorizontalAlignment="Left" TextAlignment="Center" Margin="75,48,0,0" TextWrapping="Wrap" Text="{Binding CurrentWeather}" VerticalAlignment="Top" Width="131" Height="22" FontSize="14.667"/>
                     </Grid>
-                    <DataGrid x:Name="dataGrid1" HorizontalAlignment="Left" Margin="3,31,0,2" Width="282" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" ItemsSource="{Binding WeatherDataGridItem, IsAsync=True}" Drop="Weather_dataGrid_Drop">
+                    <DataGrid x:Name="dgWeatherPackages" Drop="Weather_dataGrid_Drop" Margin="3,31,0,2" CanUserResizeColumns="False" CanUserResizeRows="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" AutoGenerateColumns="False" AllowDrop="True" ItemsSource="{Binding DgWeatherPackagesData, IsAsync=True}" HorizontalAlignment="Left" Width="282">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <CheckBox x:Name="checkbox" IsChecked="{Binding Path=IsEnabled}" Checked="Weather_OnChecked" Unchecked="Weather_OnChecked"/>
+                                        <CheckBox x:Name="checkbox" IsChecked="{Binding IsEnabled}" Checked="Weather_OnChecked" Unchecked="Weather_OnChecked"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Name" Width="*" IsReadOnly="True" CanUserSort="True" Binding="{Binding Name}" ElementStyle="{StaticResource TextBlockStyleTextTrimming}"/>
+                            <DataGridTemplateColumn>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Rectangle Visibility="{Binding WarningSignVisibility}" ToolTip="Warning! Package specific settings.xml not found!" Width="15" Height="15">
+                                            <Rectangle.Fill>
+                                                <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_warning}"/>
+                                            </Rectangle.Fill>
+                                        </Rectangle>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Count" Width="*" IsReadOnly="True" CanUserSort="True" Binding="{Binding Count}" />
                             <DataGridTemplateColumn CanUserSort="False" Width="SizeToCells" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Background="Transparent" Tag="{Binding Path=Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
-                                            <Rectangle Width="12" Height="12">
+                                        <Button Background="Transparent" Tag="{Binding Name}" ToolTip="Remove Item From List" Click="ButtonRemoveItem_Click">
+                                            <Rectangle Visibility="Hidden" Width="12" Height="12">
                                                 <Rectangle.Fill>
                                                     <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_close}" />
                                                 </Rectangle.Fill>
@@ -388,10 +419,10 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <Label x:Name="label2" Content="Upcoming Picture:" Margin="0,31,0,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="206"/>
-                    <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="300,137,0,0" VerticalAlignment="Top" Width="50"/>
-                    <Button x:Name="button1" Content="Button" HorizontalAlignment="Left" Margin="456,137,0,0" VerticalAlignment="Top" Width="50"/>
-                    <Button x:Name="button3" Content="Random" HorizontalAlignment="Left" Margin="355,137,0,0" VerticalAlignment="Top" Width="96" Click="Weather_Random_Click"/>
+                    <Label x:Name="lUpcomingWallpaper" Content="Upcoming Wallpaper:" Margin="300,31,0,217"/>
+                    <Button x:Name="button" Content="Left" Command="{Binding BtnDisplayNextUpcomingWallpaperCommand}" CommandParameter="left" Margin="0,0,156,108" HorizontalAlignment="Right" Width="50" Height="29" VerticalAlignment="Bottom"/>
+                    <Button x:Name="button2" Content="Right" Command="{Binding BtnDisplayNextUpcomingWallpaperCommand}" CommandParameter="right" Margin="0,0,0,108" HorizontalAlignment="Right" Width="50" Height="29" VerticalAlignment="Bottom"/>
+                    <Button x:Name="btnShuffleUpcomingWallpapers" Content="Shuffle" Command="{Binding BtnShuffleUpcomingWallpapersCommand}" Margin="0,0,55,108" Click="Weather_Random_Click" HorizontalAlignment="Right" Width="96" Height="29" VerticalAlignment="Bottom"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -401,10 +432,10 @@
                 <StackPanel Orientation="Horizontal" Margin="4,3,8,3">
                     <Rectangle Width="25" Height="15">
                         <Rectangle.Fill>
-                            <ImageBrush Stretch="Fill" ImageSource="{Binding ElementName=mainWindow, Path=DraggedItem.Path}"/>
+                            <ImageBrush Stretch="Fill" ImageSource="{Binding DraggedItem.Path, ElementName=mainWindow}"/>
                         </Rectangle.Fill>
                     </Rectangle>
-                    <TextBlock VerticalAlignment="Center" Text="{Binding ElementName=mainWindow, Path=DraggedItem.Name}" Margin="8,0,0,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Binding DraggedItem.Name, ElementName=mainWindow}" Margin="8,0,0,0"/>
                 </StackPanel>
             </Border>
         </Popup>
