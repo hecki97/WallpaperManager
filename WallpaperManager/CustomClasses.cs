@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace WallpaperManager
 {
@@ -22,8 +23,36 @@ namespace WallpaperManager
         public string Url { get; set; }
         public string Name { get; set; }
         public string Resolution { get; set; }
+        public string Directory { get; set; }
         public string FilePath { get; set; }
+        public string ThumbnailPath { get; set; }
         public string Copyright { get; set; }
         public string CopyrightLink { get; set; }
+
+        protected bool wallpaperFoundOnDisk = false;
+
+        public bool WallpaperFoundOnDisk
+        {
+            get => wallpaperFoundOnDisk;
+        }
+
+        public void CheckIfWallpaperExistsOnDisk()
+        {
+            wallpaperFoundOnDisk = File.Exists(FilePath);
+            //Console.WriteLine("Found on disk: " + wallpaperFoundOnDisk);
+        }
+
+        public void UpdateFilePath(string resolution)
+        {
+            Resolution = resolution;
+            FilePath = Directory + @"\" + Name + @"\" + Name + "_" + Resolution + ".jpg";
+            CheckIfWallpaperExistsOnDisk();   
+        }
+    }
+
+    public class WallpaperSettings
+    {
+        public WallpaperHandler.Style WallpaperStyle { get; set; }
+        public System.Drawing.Color BackgroundColor { get; set; }
     }
 }

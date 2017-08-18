@@ -34,8 +34,7 @@ namespace WallpaperManager.Commands
 
         public void RaiseCanExecuteChanged()
         {
-            if (CanExecuteChanged != null)
-                CanExecuteChanged(this, EventArgs.Empty);
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -75,9 +74,9 @@ namespace WallpaperManager.Commands
             }
         }
 
-        protected virtual void OnCanExecuteChanged()
+        public void OnCanExecuteChanged()
         {
-            if (CanExecuteChanged != null) CanExecuteChanged(this, new EventArgs());
+            CanExecuteChanged?.Invoke(this, new EventArgs());
         }
     }
 }

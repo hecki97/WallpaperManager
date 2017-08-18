@@ -48,12 +48,10 @@ namespace WallpaperManager
         public static long GetFileSizeOnDisk(string file)
         {
             FileInfo info = new FileInfo(file);
-            uint dummy, sectorsPerCluster, bytesPerSector;
-            int result = NativeMethods.GetDiskFreeSpaceW(info.Directory.Root.FullName, out sectorsPerCluster, out bytesPerSector, out dummy, out dummy);
+            int result = NativeMethods.GetDiskFreeSpaceW(info.Directory.Root.FullName, out uint sectorsPerCluster, out uint bytesPerSector, out uint dummy, out dummy);
             if (result == 0) throw new Win32Exception();
             uint clusterSize = sectorsPerCluster * bytesPerSector;
-            uint hosize;
-            uint losize = NativeMethods.GetCompressedFileSizeW(file, out hosize);
+            uint losize = NativeMethods.GetCompressedFileSizeW(file, out uint hosize);
             long size;
             size = (long)hosize << 32 | losize;
             return ((size + clusterSize - 1) / clusterSize) * clusterSize;

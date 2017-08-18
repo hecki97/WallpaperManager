@@ -74,7 +74,6 @@ namespace WallpaperManager
         }
         #endregion
 
-        
         #region BackgroundType
         public enum BackgroundType : int
         {
@@ -84,12 +83,12 @@ namespace WallpaperManager
         }
         #endregion
 
-        public static readonly List<string> backgroundTypes = new List<string>() { "Solid Color", "Picture", "Slideshow" };
-        public static readonly List<string> wallpaperStyles = new List<string>() { "Fill", "Fit", "Stretch", "Tile", "Centre", "Span" };
+        //public static readonly List<string> backgroundTypes = new List<string>() { "Solid Color", "Picture", "Slideshow" };
+        //public static readonly List<string> wallpaperStyles = new List<string>() { "Fill", "Fit", "Stretch", "Tile", "Centre", "Span" };
 
-        private static readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
-        private static readonly string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
-        private static readonly WallpaperHandler.Style fallbackWallpaperStyle = WallpaperHandler.Style.Stretch;
+        public static readonly List<string> supportedExtensions = new List<string> { ".JPG", ".JPEG", ".BMP", ".GIF", ".PNG" };
+        public static readonly string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\WallpaperManager";
+        //public static readonly WallpaperHandler.Style fallbackWallpaperStyle = WallpaperHandler.Style.Stretch;
 
         private int wallpaperIndex = 0;
         private double interval = 10;
@@ -111,16 +110,20 @@ namespace WallpaperManager
 
         //TODO: Write more userfriendly GUI
 
-        private MainWindowViewModel mainWindowViewModel = new MainWindowViewModel();
+        public delegate void ApplicationShutdownEventDelegate();
+        public static event ApplicationShutdownEventDelegate ApplicationShutdownEvent;
+
         private WeatherViewModel weatherViewModel = new WeatherViewModel();
         private BingViewModel bingViewModel = new BingViewModel();
+
+        private string mainWindowApplicationHeader = string.Empty;
+
+        public string MainWindowApplicationHeader => Properties.Settings.Default.ApplicationHeader + " (" + Properties.Settings.Default.ApplicationVersion + ")";
 
         public MainWindow()
         {
             InitializeComponent();
-
-            mainWindow.DataContext = mainWindowViewModel;
-
+            DataContext = this;
             TabWeather.DataContext = weatherViewModel;
             TabBing.DataContext = bingViewModel;
 
@@ -146,13 +149,6 @@ namespace WallpaperManager
                 // avoid the inevitable crash
             }
 
-            //intervalComboBoxData = new ObservableCollection<double>(Properties.Settings.Default.IntervalList);
-            intervalComboBoxData = new ObservableCollection<double>(new List<double> { 15, 30, 60, 300, 900, 3600, 86400 });
-
-            //Bind DataGrid ItemSource and ComboBox DataContext
-            dataGrid.ItemsSource = dataGridData;
-            IntervalComboBox.DataContext = intervalComboBoxData;
-
             if (Properties.Settings.Default.UpgradeRequired)
             {
                 Properties.Settings.Default.Upgrade();
@@ -167,9 +163,18 @@ namespace WallpaperManager
             Left = Properties.Settings.Default.WindowPos.X;
             Top = Properties.Settings.Default.WindowPos.Y;
 
+
+
+            ///intervalComboBoxData = new ObservableCollection<double>(Properties.Settings.Default.IntervalList);
+            intervalComboBoxData = new ObservableCollection<double>(new List<double> { 15, 30, 60, 300, 900, 3600, 86400 });
+
+            //Bind DataGrid ItemSource and ComboBox DataContext
+            dataGrid.ItemsSource = dataGridData;
+            //IntervalComboBox.DataContext = intervalComboBoxData;
+
             //Restore Interval, 
             interval = intervalComboBoxData[Properties.Settings.Default.intervalIndex % intervalComboBoxData.Count];
-            //wallpaperStyle = (WallpaperHandler.Style) Properties.Settings.Default.iWallpaperStyle;
+            ///wallpaperStyle = (WallpaperHandler.Style) Properties.Settings.Default.iWallpaperStyle;
             background = (BackgroundType)Properties.Settings.Default.backgroundType;
             backgroundColor = System.Drawing.ColorTranslator.FromHtml(Properties.Settings.Default.backgroundColorHex);
 
@@ -186,6 +191,18 @@ namespace WallpaperManager
             if (!Directory.Exists(applicationDataPath + @"\weather\packages")) Directory.CreateDirectory(applicationDataPath + @"\weather\packages");
 
            // dataGrid1.ItemsSource = weatherDataGridData;
+        }
+
+        public void OnApplicationShutdown()
+        {
+            Properties.Settings.Default.WindowSize = new Vector(Width, Height);
+            Properties.Settings.Default.WindowPos = new Vector(Left, Top);
+            Properties.Settings.Default.WindowState = WindowState;
+
+            ApplicationShutdownEvent?.Invoke();
+
+            Properties.Settings.Default.Save();
+            Debug.WriteLine("Saved!");
         }
 
         #region Dispatcher Timer
@@ -236,20 +253,14 @@ namespace WallpaperManager
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            Properties.Settings.Default.WindowSize = new Vector(Width, Height);
-            Properties.Settings.Default.WindowPos = new Vector(Left, Top);
-            Properties.Settings.Default.WindowState = WindowState;
-            Properties.Settings.Default.Save();
+            OnApplicationShutdown();
         }
         #endregion     
 
         #region TrayIcon Button EventHandler
         private void TrayIcon_ButtonExitClick(object sender, RoutedEventArgs e)
         {
-            Properties.Settings.Default.WindowSize = new Vector(Width, Height);
-            Properties.Settings.Default.WindowPos = new Vector(Left, Top);
-            Properties.Settings.Default.WindowState = WindowState;
-            Properties.Settings.Default.Save();
+            OnApplicationShutdown();
             Application.Current.Shutdown();
         }
 
@@ -344,7 +355,7 @@ namespace WallpaperManager
         {
             //Properties.Settings.Default.iBackgroundType = BackgroundComboBox.SelectedIndex;
 
-            background = (BackgroundType)BackgroundComboBox.SelectedIndex;
+            //background = (BackgroundType)BackgroundComboBox.SelectedIndex;
             if (dispatcherTimer.IsEnabled) { dispatcherTimer.Stop(); Properties.Settings.Default.count = 0; }
             if (background == BackgroundType.Slideshow) dispatcherTimer.Start();
             if (background == BackgroundType.SolidColor) lastItem = new DataGridItem();
@@ -361,6 +372,7 @@ namespace WallpaperManager
 
         private void ButtonChangeWP_Click(object sender, RoutedEventArgs e)
         {
+            /*
             if (background == BackgroundType.SolidColor)
             {
                 var wmcolor = ColorPicker.SelectedColor.Value;
@@ -368,22 +380,27 @@ namespace WallpaperManager
             }
             else
                 UpdateWallpaper((dataGrid.SelectedItem != null) ? (DataGridItem)dataGrid.SelectedItem : null);
+            */
         }
 
         private void WPStyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            /*
             if (!IsLoaded) return;
             Properties.Settings.Default.wallpaperStyleIndex = (int)Enum.Parse(typeof(WallpaperHandler.Style), WPStyleComboBox.SelectedValue.ToString(), true);
             Properties.Settings.Default.Save();
+            */
         }
 
         private void IntervalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            /*
             if (!IsLoaded) return;
             interval = (double)IntervalComboBox.SelectedItem;
             Properties.Settings.Default.intervalIndex = IntervalComboBox.SelectedIndex;
             Properties.Settings.Default.count = 0;
             Properties.Settings.Default.Save();
+            */
         }
 
         #region DataGrid Events
@@ -490,6 +507,7 @@ namespace WallpaperManager
 
         private void UpdateWallpaper(DataGridItem item = null)
         {
+            /*
             if (dataGridData.Count <= 0) return;
             if (item == null) item = dataGridData.ElementAt(wallpaperIndex % dataGridData.Count);
             if (item != null && !string.IsNullOrWhiteSpace(item.Path))
@@ -514,40 +532,8 @@ namespace WallpaperManager
             }
             else
                 DebugLog.Error("Wallpaper couldn't be set, because item is null!");
+                */
         }
-
-        /*
-        private void UpdateWallpaper1<T>(T item)
-        {
-            //if (dataGridData.Count <= 0 || bingWallpapers.Count <= 0) return;
-           if (TabCustom.IsSelected)
-
-            if (dataGridData.Count <= 0) return;
-            if (item == null) item = dataGridData.ElementAt(wallpaperIndex % dataGridData.Count);
-            if (item != null && !string.IsNullOrWhiteSpace(item.Path))
-            {
-                System.Drawing.Color lastBackgroundColor = backgroundColor;
-                System.Windows.Media.Color colorPickerSelectedColor = ColorPicker.SelectedColor.Value;
-                backgroundColor = System.Drawing.Color.FromArgb(colorPickerSelectedColor.A, colorPickerSelectedColor.R, colorPickerSelectedColor.G, colorPickerSelectedColor.B);
-                if (!lastItem.Path.Equals(item.Path) || (lastItem.Path.Equals(item.Path) && !lastStyle.Equals((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex)) || (lastItem.Path.Equals(item.Path) && !lastBackgroundColor.Equals(backgroundColor)) && item.IsEnabled)
-                {
-                    WallpaperHandler.Set(item.Path, (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex, backgroundColor);
-                    wallpaperIndex = ((dataGrid.SelectedItem != null) ? (dataGrid.SelectedIndex + 1) : (wallpaperIndex + 1)) % dataGrid.Items.Count;
-
-                    //When double clicking on an item the timer will be reset to zero
-                    Properties.Settings.Default.count = 0;
-
-                    lastStyle = (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex;
-                    lastItem = item;
-                    UpdateGUI();
-                }
-                else
-                    DebugLog.Warning("Item '" + item.Path + "' is already set as wallpaper!");
-            }
-            else
-                DebugLog.Error("Wallpaper couldn't be set, because item is null!");
-        }
-        */
 
         private bool GetEnumStringEnumType<TEnum>(string _string) where TEnum : struct
         {
@@ -560,6 +546,7 @@ namespace WallpaperManager
         #region GUI
         private void InitGUI()
         {
+            /*
             IntervalComboBox.SelectedIndex = Properties.Settings.Default.intervalIndex;
             WPStyleComboBox.SelectedIndex = Properties.Settings.Default.wallpaperStyleIndex;
 
@@ -581,10 +568,12 @@ namespace WallpaperManager
 
             UpdateGUI();
             UpdateDataGridGUI();
+            */
         }
 
         private void UpdateGUI()
         {
+            /*
             UpdateButton(ButtonClearList);
             //TODO: Special cases for ButtonChangeWP
             UpdateButton(ButtonChangeWP);
@@ -619,6 +608,7 @@ namespace WallpaperManager
 
             //Special Case
             if (background == BackgroundType.SolidColor && !ButtonChangeWP.IsEnabled) { ButtonChangeWP.IsEnabled = true; ButtonChangeWP.Opacity = 1; }
+            */
         }
 
         private void UpdateDataGridGUI()
@@ -743,48 +733,6 @@ namespace WallpaperManager
         #endregion
         #endregion
 
-        /** Bing Image Handler **/
-        #region GUI Events
-        private async void Bing_setCurrentImageAsBackground(object sender, RoutedEventArgs e)
-        {
-            /*
-            if (bingWallpapers.Count <= 0) return;
-            BingItem currentItem = bingWallpapers.ElementAt(bIndex);
-            string res = Bing_SelectDownloadResolution.Text;
-            await Bing_DownloadImageAsync(currentItem, res);
-            WallpaperHandler.Set(bingWallpaperDir + currentItem.Name + "_" + res + ".jpg", WallpaperHandler.Style.Fill, backgroundColor);
-            */
-        }
-        #endregion
-        /*
-        private void Bing_UpdateWallpaper(BingItem item)
-        {
-            if (bingWallpapers.Count <= 0) return;
-            if (item != null)
-            {
-                System.Drawing.Color lastBackgroundColor = backgroundColor;
-                System.Windows.Media.Color colorPickerSelectedColor = ColorPicker.SelectedColor.Value;
-                backgroundColor = System.Drawing.Color.FromArgb(colorPickerSelectedColor.A, colorPickerSelectedColor.R, colorPickerSelectedColor.G, colorPickerSelectedColor.B);
-                if (!lastItem.Path.Equals(item.FilePath) || (lastItem.Path.Equals(item.FilePath) && !lastStyle.Equals((WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex)) || (lastItem.Path.Equals(item.Path) && !lastBackgroundColor.Equals(backgroundColor)) && item.IsEnabled)
-                {
-                    WallpaperHandler.Set(item.Path, (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex, backgroundColor);
-                    wallpaperIndex = ((dataGrid.SelectedItem != null) ? (dataGrid.SelectedIndex + 1) : (wallpaperIndex + 1)) % dataGrid.Items.Count;
-
-                    //When double clicking on an item the timer will be reset to zero
-                    Properties.Settings.Default.count = 0;
-
-                    lastStyle = (WallpaperHandler.Style)Properties.Settings.Default.wallpaperStyleIndex;
-                    lastItem = item;
-                    UpdateGUI();
-                }
-                else
-                    DebugLog.Warning("Item '" + item.Path + "' is already set as wallpaper!");
-            }
-            else
-                DebugLog.Error("Wallpaper couldn't be set, because item is null!");
-        }
-        */
-
         /// <summary>
         /// WeatherTab
         /// </summary>
@@ -824,6 +772,7 @@ namespace WallpaperManager
         }
         */
 
+        //TODO: This needs to be reworked! 
         private void Weather_OnChecked(object sender, RoutedEventArgs e)
         {
             CheckBox checkBox = (CheckBox)e.OriginalSource;

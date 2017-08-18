@@ -12,7 +12,7 @@ namespace WallpaperManager.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "14.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.1.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -149,6 +149,150 @@ namespace WallpaperManager.Properties {
             }
             set {
                 this["UpgradeRequired"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+  <string>Picture</string>
+  <string>Picture</string>
+  <string>Picture</string>
+  <string>Picture</string>
+</ArrayOfString>")]
+        public global::System.Collections.Specialized.StringCollection CbMainWindowSelectedBackgroundType {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["CbMainWindowSelectedBackgroundType"]));
+            }
+            set {
+                this["CbMainWindowSelectedBackgroundType"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+  <string>Fill</string>
+  <string>Fill</string>
+  <string>Fill</string>
+  <string>Fill</string>
+</ArrayOfString>")]
+        public global::System.Collections.Specialized.StringCollection CbMainWindowSelectedWallpaperStyle {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["CbMainWindowSelectedWallpaperStyle"]));
+            }
+            set {
+                this["CbMainWindowSelectedWallpaperStyle"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
+<ArrayOfString xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+  <string>#000</string>
+  <string>#000</string>
+  <string>#000</string>
+  <string>#000</string>
+</ArrayOfString>")]
+        public global::System.Collections.Specialized.StringCollection CpMainWindowSelectedBackgroundColor {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["CpMainWindowSelectedBackgroundColor"]));
+            }
+            set {
+                this["CpMainWindowSelectedBackgroundColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseGlobalSettings {
+            get {
+                return ((bool)(this["UseGlobalSettings"]));
+            }
+            set {
+                this["UseGlobalSettings"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1920x1200")]
+        public string CbBingSelectedDownloadResolution {
+            get {
+                return ((string)(this["CbBingSelectedDownloadResolution"]));
+            }
+            set {
+                this["CbBingSelectedDownloadResolution"] = value;
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1.2 dev")]
+        public string ApplicationVersion {
+            get {
+                return ((string)(this["ApplicationVersion"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Wallpaper Manager [Bing Edition]")]
+        public string ApplicationHeader {
+            get {
+                return ((string)(this["ApplicationHeader"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CmBoolUpdateWallpaperWhenChangingResolution {
+            get {
+                return ((bool)(this["CmBoolUpdateWallpaperWhenChangingResolution"]));
+            }
+            set {
+                this["CmBoolUpdateWallpaperWhenChangingResolution"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CmBoolApplyShaderWhenWallpaperHasNotBeenDownloadedYet {
+            get {
+                return ((bool)(this["CmBoolApplyShaderWhenWallpaperHasNotBeenDownloadedYet"]));
+            }
+            set {
+                this["CmBoolApplyShaderWhenWallpaperHasNotBeenDownloadedYet"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CmBoolCircleWallpapersInView {
+            get {
+                return ((bool)(this["CmBoolCircleWallpapersInView"]));
+            }
+            set {
+                this["CmBoolCircleWallpapersInView"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CmBoolOpenWallpaperAfterDownload {
+            get {
+                return ((bool)(this["CmBoolOpenWallpaperAfterDownload"]));
+            }
+            set {
+                this["CmBoolOpenWallpaperAfterDownload"] = value;
             }
         }
     }

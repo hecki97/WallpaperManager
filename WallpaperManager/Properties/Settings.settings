@@ -41,5 +41,56 @@
     <Setting Name="UpgradeRequired" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="CbMainWindowSelectedBackgroundType" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;Picture&lt;/string&gt;
+  &lt;string&gt;Picture&lt;/string&gt;
+  &lt;string&gt;Picture&lt;/string&gt;
+  &lt;string&gt;Picture&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="CbMainWindowSelectedWallpaperStyle" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;Fill&lt;/string&gt;
+  &lt;string&gt;Fill&lt;/string&gt;
+  &lt;string&gt;Fill&lt;/string&gt;
+  &lt;string&gt;Fill&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="CpMainWindowSelectedBackgroundColor" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;#000&lt;/string&gt;
+  &lt;string&gt;#000&lt;/string&gt;
+  &lt;string&gt;#000&lt;/string&gt;
+  &lt;string&gt;#000&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="UseGlobalSettings" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="CbBingSelectedDownloadResolution" Type="System.String" Scope="User">
+      <Value Profile="(Default)">1920x1200</Value>
+    </Setting>
+    <Setting Name="ApplicationVersion" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">1.2 dev</Value>
+    </Setting>
+    <Setting Name="ApplicationHeader" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Wallpaper Manager [Bing Edition]</Value>
+    </Setting>
+    <Setting Name="CmBoolUpdateWallpaperWhenChangingResolution" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="CmBoolApplyShaderWhenWallpaperHasNotBeenDownloadedYet" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="CmBoolCircleWallpapersInView" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="CmBoolOpenWallpaperAfterDownload" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
